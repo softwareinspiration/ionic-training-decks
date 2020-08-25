@@ -51,7 +51,7 @@ Enter `npm test` and verify that the tests run.
 
 ### Jest VSCode Extension
 
-If you are using Visual Studio Code as your editor, a [Jest extension](https://github.com/jest-community/vscode-jest) exists that will -- among other things -- automatically run the tests for you and report on the status.
+If you are using Visual Studio Code as your editor, a [Jest extension](https://github.com/jest-community/vscode-jest) exists that will (among other things) automatically run the tests for you and report on the status.
 
 ## Structuring Unit Tests
 

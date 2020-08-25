@@ -100,12 +100,12 @@
           "file": "unit-tests"
         },
         {
-          "title": "Style the App",
-          "file": "style"
+          "title": "Add Platforms",
+          "file": "platforms"
         },
         {
-          "title": "Use a Component Library",
-          "file": "use-library"
+          "title": "Use Native APIs",
+          "file": "native-apis"
         },
         {
           "title": "Mock Up the Interface",
