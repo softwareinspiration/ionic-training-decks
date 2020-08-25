@@ -79,14 +79,15 @@ import React, { useEffect } from 'react';
 ...
 import { Plugins, StatusBarStyle } from '@capacitor/core';
 ...
+
 const App: React.FC = () => {
-  const { StatusBar } = Plugins;
-
-  const setStatusBar = async () => {
-    await StatusBar.setStyle({ style: StatusBarStyle.Dark });
-  };
-
-  useEffect(() => { setStatusBar() }, []);
+  useEffect(() => {
+    const { StatusBar } = Plugins;
+    const styleStatusBar = async () => {
+      await StatusBar.setStyle({ style: StatusBarStyle.Dark });
+    };
+    if (isPlatform('android')) styleStatusBar();
+  }, []);
 
   return (
     <IonApp>
