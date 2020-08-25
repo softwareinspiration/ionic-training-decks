@@ -124,3 +124,99 @@ export default App;
 ```
 
 Run your tests again to validate that we didn't break any tests during this process. Additionally a new snapshot will be captured for our `<TeaList />` component.
+
+### Mock the Data
+
+We don't have a connection to a back end service to get any data for our application, so for now we will just add some data directly to our page to have something to work with. Copy and paste the following constant into `TeaList.tsx`:
+
+```TypeScript
+const teaData: Array<Tea> = [
+  {
+    id: 1,
+    name: 'Green',
+    image: 'assets/img/green.jpg',
+    description:
+      'Green teas have the oxidation process stopped very early on, leaving them with a very subtle flavor and ' +
+      'complex undertones. These teas should be steeped at lower temperatures for shorter periods of time.',
+  },
+  {
+    id: 2,
+    name: 'Black',
+    image: 'assets/img/black.jpg',
+    description:
+      'A fully oxidized tea, black teas have a dark color and a full robust and pronounced flavor. Blad teas tend ' +
+      'to have a higher caffeine content than other teas.',
+  },
+  {
+    id: 3,
+    name: 'Herbal',
+    image: 'assets/img/herbal.jpg',
+    description:
+      'Herbal infusions are not actually "tea" but are more accurately characterized as infused beverages ' +
+      'consisting of various dried herbs, spices, and fruits.',
+  },
+  {
+    id: 4,
+    name: 'Oolong',
+    image: 'assets/img/oolong.jpg',
+    description:
+      'Oolong teas are partially oxidized, giving them a flavor that is not as robust as black teas but also ' +
+      'not as suble as green teas. Oolong teas often have a flowery fragrance.',
+  },
+  {
+    id: 5,
+    name: 'Dark',
+    image: 'assets/img/dark.jpg',
+    description:
+      'From the Hunan and Sichuan provinces of China, dark teas are flavorful aged probiotic teas that steeps ' +
+      'up very smooth with slightly sweet notes.',
+  },
+  {
+    id: 6,
+    name: 'Puer',
+    image: 'assets/img/puer.jpg',
+    description:
+      'An aged black tea from china. Puer teas have a strong rich flavor that could be described as "woody" or "peaty."',
+  },
+  {
+    id: 7,
+    name: 'White',
+    image: 'assets/img/white.jpg',
+    description:
+      'White tea is produced using very young shoots with no oxidation process. White tea has an extremely ' +
+      'delicate flavor that is sweet and fragrent. White tea should be steeped at lower temperatures for ' +
+      'short periods of time.',
+  },
+  {
+    id: 8,
+    name: 'Yellow',
+    image: 'assets/img/yellow.jpg',
+    description:
+      'A rare tea from China, yellow tea goes through a similar shortened oxidation process like green teas. ' +
+      'Yellow teas, however, do not have the grassy flavor that green teas tend to have. The leaves often ' +
+      'resemble the shoots of white teas, but are slightly oxidized.',
+  },
+];
+```
+
+We haven't imported the `Tea` model into our file yet so your IDE may be showing some kind of visual cue. Let's go ahead and import it, using the barrel file we just created:
+
+```TypeScript
+import React from 'react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { Tea } from '../models';
+import ExploreContainer from '../components/ExploreContainer';
+
+import './TeaList.css';
+```
+
+**Side-Note:** I like to group and organize my imports like so:
+
+1. React - The main framework the project is built with
+2. Ionic - The UX framework the project uses
+3. Core/Shared application modules
+4. Folder-relative modules
+5. --NEW LINE--
+6. Non-TypeScript imports, such as CSS files or images
+
+There's no penalty if you don't organize your imports this way (or at all), but I find it easier to comprehend.
