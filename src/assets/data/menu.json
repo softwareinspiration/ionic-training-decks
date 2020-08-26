@@ -108,8 +108,20 @@
           "file": "native-apis"
         },
         {
+          "title": "Styling",
+          "file": "style"
+        },
+        {
           "title": "Mock Up the Interface",
           "file": "mock-ui"
+        },
+        {
+          "title": "Login Page",
+          "file": "login-page"
+        },
+        {
+          "title": "Authentication Context",
+          "file": "auth-context"
         },
         {
           "title": "Get Data",
@@ -120,20 +132,20 @@
           "file": "use-data"
         },
         {
-          "title": "Add Loading Indicator",
-          "file": "loading-indicator"
+          "title": "Reusable Component",
+          "file": "resuable-component"
         },
         {
-          "title": "Add Platforms",
-          "file": "platforms"
+          "title": "Tabbed Navigation",
+          "file": "tabbed-navigation"
         },
         {
-          "title": "Use Native APIs",
-          "file": "native-apis"
+          "title": "The Notes Feature",
+          "file": "notes-feature"
         },
         {
-          "title": "Switch Scale",
-          "file": "toggle-scale"
+          "title": "About Page",
+          "file": "about-page"
         }
       ]
     },

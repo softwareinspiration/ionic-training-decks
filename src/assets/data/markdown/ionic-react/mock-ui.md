@@ -1,6 +1,6 @@
 # Lab: Mock Up the Interface
 
-In this lab, you will:
+In this lab, you will learn how to:
 
 - Model the data
 - Mock up the user interface
@@ -319,7 +319,7 @@ Now that we can generate our matrix, let's create the grid. Set up Chrome to emu
 Replace the existing `<IonList />` with the following code:
 
 ```TypeScript React
-<IonGrid>
+<IonGrid className="tea-grid">
   {listToMatrix().map((row, idx) => (
     <IonRow
       key={idx}
@@ -376,4 +376,4 @@ Additionally, don't forget to update your component's snapshot!
 
 ## Conclusion
 
-We have learned how to mock up an interface and make our design responsive. Make sure you have a look at your app in both light and dark mode. Next we will look at how to get real data for our application.
+We have learned how to mock up an interface and make our design responsive. Make sure you have a look at your app in both light and dark mode. Next we will add a login page to our application.
