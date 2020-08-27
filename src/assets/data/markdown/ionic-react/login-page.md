@@ -391,6 +391,83 @@ describe('<Login />', () => {
 
 #### Then Code
 
+To achieve this, we're going to combine the two React Hooks we've already worked with: `useEffect` and `useState`.
+
+```TypeScript
+const Login: React.FC = () => {
+  const [dirtyEmail, setDirtyEmail] = useState<boolean>(false);
+  ...
+
+    useEffect(() => {
+    if (dirtyEmail && !email.length)
+      return setError('E-Mail Address is required');
+
+    if (dirtyEmail && !email.match(/\S+@\S+\.\S+/))
+      return setError('E-Mail Address must have a valid format');
+
+    if (dirtyPassword && !password.length)
+      return setError('Password is required');
+
+    return setError('');
+  }, [email, password]);
+
+  return (
+    <IonPage>
+      <IonHeader>
+        ...
+      </IonHeader>
+      <IonContent>
+        ...
+        </IonHeader>
+        <form>
+          <IonList>
+            <IonItem>
+              <IonLabel position="floating">E-Mail Address</IonLabel>
+              <IonInput
+                onIonChange={e => {
+                  setDirtyEmail(true);
+                  setEmail(e.detail.value!);
+                }}
+                name="email"
+                type="email"
+                id="email-input"
+                required
+              />
+            </IonItem>
+            <IonItem>
+              <IonLabel position="floating">Password</IonLabel>
+              <IonInput
+                onIonChange={e => {
+                  setDirtyPassword(true);
+                  setPassword(e.detail.value!);
+                }}
+                name="password"
+                type="password"
+                id="password-input"
+                required
+              />
+            </IonItem>
+          </IonList>
+        </form>
+        <div className="error-message">{error}</div>
+      </IonContent>
+      <IonFooter>
+        <IonToolbar>
+          <IonButton
+            id="signin-button"
+            expand="full"
+            onClick={() => signIn()}
+            disabled={error.length > 0 || !email.length || !password.length}>
+            Sign In
+            <IonIcon slot="end" icon={logInOutline} />
+          </IonButton>
+        </IonToolbar>
+      </IonFooter>
+    </IonPage>
+  );
+};
+```
+
 ## Conclusion
 
 We have learned how to mock up an interface and make our design responsive. Make sure you have a look at your app in both light and dark mode. Next we will add a login page to our application.
