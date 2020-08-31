@@ -238,7 +238,7 @@ Before moving on with our login page, let's take a detour to add a dependency th
 
 <a href="https://github.com/ionic-team/ionic-react-test-utils" target="_blank">Ionic React Test Utils</a> is a set of helper methods that makes Jest and React Testing Library aware of these attributes and events.
 
-Terminate any running processes and run the following command in a terminal instance pointing to the root of your application:
+Terminate any running processes and run the following command in the terminal:
 
 ```bash
 $ npm install --save-dev @ionic/react-test-utils
