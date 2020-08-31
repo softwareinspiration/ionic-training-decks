@@ -120,6 +120,10 @@
           "file": "auth"
         },
         {
+          "title": "Auth Context and Hook",
+          "file": "context-hook"
+        },
+        {
           "title": "Get Data",
           "file": "get-data"
         },
