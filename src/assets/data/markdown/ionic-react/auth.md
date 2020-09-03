@@ -2,45 +2,34 @@
 
 In this lab, you will learn how to:
 
-- Use environment variables
-- Interact with a data service
-- Supply application-level state
-- Control navigation based on state
+- Use environment variables to configure dynamic values
+- Interact with HTTP-based data services
+- Implement the singleton pattern to create shared class instances
 
 ## Overview
 
-Our application has a login page but it doesn't do much; we don't have a way to authenticate users or a way to determine the authentication status of the current user. This functionality would be beneficial to show or hide specific portions of our application depending if the current user is logged in or not.
+Our application has a login page but it doesn't do much; we don't have a way to allow users to sign in or sign out, nor do we have a way to retrieve information on the user currently interacting with the application. Luckily, we have a data service we can plug into that provides these pieces of functionality.
 
-For the purpose of our application, "authentication" consists of two parts:
+There are two conceptual pieces to authentication:
 
-1. Managing the identity of the user currently interacting with the application
-2. Communicating between the application and the authentication API
+1. Managing the authentication and unauthentication of all application users
+2. Managing the status and state of the current application user
 
-We're going to write separate implementations for each part, making it easier if we ever need to swap implementations. We also get brownie points by following the Single Responsibility Principle!
+Following the Single Responsibility Principle, we should have one class that implements functionality that is applicable to all users (Authentication) and one class that implements functionality that is only applicable to the current user (Identity).
 
-### Side Note: `new Class()` vs. Singletons
+### Side Note: Singleton Pattern
 
-In most web or mobile applications, classes that provide data service functionality only need one single instance that should be shared across the implementation. This is the ideal scenario to apply the Singleton design pattern.
+It's incredibly common for web and mobile applications to use a shared single instance of classes that provides functionality with data services or other APIs. This is known as the singleton pattern, and it works really well!
 
-Some frameworks provide a mechanism to "automagically" create singletons out of data service classes. React is not one of those frameworks.
+Some frameworks provide a mechanism that will provision singleton instances of classes for you. React does not. I've seen React projects export a new instance of a class to share a single class instance like this `export default new MyClass();`, or mix "business logic" with components or React hooks.
 
-I commonly see React projects implement the Singleton pattern like this:
-
-```TypeScript
-class MyClass {}
-export default new MyClass();
-```
-
-Which works, but isn't ideal:
-
-- If `MyClass` isn't exported, it becomes very difficult to mock and test
-- Suppose `MyClass` was exported, nothing tells the developers to use the default export instead of creating a new instance
-
-We'll be implementing the Singleton Pattern the traditional way, shown in the following sections.
+I prefer explicitly implementing the singleton pattern the way it would be written in other languages. I find that it makes the intent of the code clearer to other developers.
 
 ## Create the User Model
 
-Let's begin by modeling the shape of what a user should look like in our application. Add a new file to `src/models` and name it `User.ts`. We'll export an interface with the following properties:
+It would be practical to begin by modeling the shape of what a signed in user should look like in our application.
+
+Add a new file `src/models/User.ts`:
 
 ```TypeScript
 export interface User {
@@ -51,28 +40,21 @@ export interface User {
 }
 ```
 
-**Challenge:** Add our `User` model to the models folder's barrel file.
+**Challenge:** Add our `User` interface to the `models` barrel file.
 
 ## Set Up the Environment
 
-Many applications have the need to keep dynamically-named values that affect the way the application behaves at runtime. These values are known as environment variables and are useful for storing API keys, supplying different values based on which environment context is running, enabling/disabling feature flags, etc. Our application will use environment variables to declare the URL to the data service it will use.
+Many applications have the need to modify values that effect the way the application behaves at runtime. Such values are known as environment variables, and are typically different values based on which environment context is running.
 
-At the root of your application, create a new file called `.env` and populate it with a key-value pair called `REACT_APP_DATA_SERVICE`:
+Our application will make use of environment variables to store the URL of our data service.
 
-**`.env`**
+Create a new file at the root of the project and name it `.env`:
 
 ```bash
 REACT_APP_DATA_SERVICE=https://cs-demo-api.herokuapp.com
 ```
 
-There are two things to note about using `.env` files within a React application:
-
-- All key names **must** start with `REACT_APP`
-- All values are strings and are **not** enclosed with any type of quotation characters
-
 Our application will only have one environment context to run in but if we had dedicated development and production environments, we would add additional files `.env.production` and `.env.development` to the root of our application.
-
-Handling multiple environment variable files is out-of-scope for this course, but you can find additional information on it in the <a href="https://create-react-app.dev/docs/adding-custom-environment-variables/" target="_blank">Adding Custom Environment Variables</a> portion of the Create React App documentation.
 
 ## Identity Singleton
 
@@ -264,7 +246,7 @@ Finally, we'll move onto the path where an authorization token is not available 
     ...
 ```
 
-It's important to keep the two branches in separate describe blocks as they each require different setup code. Now we have all the tests we need for `initialize`, and they're all failing, so it's time to code!
+It's important to keep the two paths in separate describe blocks as they each require different setup code. Now we have all the tests we need for `initialize`, and they're all failing, so it's time to code!
 
 #### Then Code
 
