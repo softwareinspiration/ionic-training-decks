@@ -418,6 +418,179 @@ You know the drill, failing tests means it's time to code.
 
 ## Authentication Singleton
 
+Inside of `src/auth` create two new files, `Authentication.ts` and `Authentication.test.ts`.
+
+Our authentication data service will be responsible for communicating with the data service's login and logout endpoints.
+
+Open `Authentication.ts` so we can scaffold the authentication class:
+
+**Challenge:** Implement the Singleton pattern, exporting a class named `AuthSingleton`.
+
+### Login
+
+The `login` method will submit the user's inputted e-mail address and password to the authentication data service by making a `POST` request to the `/login` endpoint.
+
+#### First Test
+
+We'll begin by scaffolding out our test file and adding our singleton assertion test:
+
+```TypeScript
+import AuthSingleton, { Authentication } from './Authentication';
+
+describe('Authentication', () => {
+  let auth: Authentication;
+
+  beforeEach(() => {
+    auth = AuthSingleton.getInstance();
+    (window.fetch as any) = jest.fn();
+  });
+
+  it('should use the singleton instance', () => {
+    expect(auth).toBeDefined();
+  });
+
+  afterEach(() => {
+    (window.fetch as any).mockRestore();
+  });
+});
+```
+
+Next, add a describe block after the singleton test for the `login` method and assert that it will make a network request:
+
+```TypeScript
+  ...
+  describe('login', () => {
+    const mockSuccessResponse = {
+      token: '3884915llf950',
+      user: {
+        id: 42,
+        firstName: 'Joe',
+        lastName: 'Tester',
+        email: 'test@test.com',
+      },
+      success: true,
+    };
+
+    beforeEach(() => {
+      (window.fetch as any) = jest.fn(() => {
+        return Promise.resolve({
+          json: () => Promise.resolve(mockSuccessResponse),
+        });
+      });
+    });
+
+    it('POSTs the login', async () => {
+      await auth.login('test@test.com', 'password');
+      expect(window.fetch).toHaveBeenCalledTimes(1);
+    });
+  });
+  ...
+```
+
+Note that a mock object has been created that represents what a successful sign in response looks like. We'll use it to test the success path. Add the following describe block and accompanying tests after `it('POSTs the login')`:
+
+```TypeScript
+    ...
+    describe('on success', () => {
+      it('returns the token and user object', async () => {
+        const result = await auth.login('test@test.com', 'password');
+        expect(result).toEqual({ token: result.token, user: result.user });
+      });
+    });
+    ...
+```
+
+Our last set of tests will test the path of a failed response. We'll create a describe block for this path after the success describe block and establish setup code that will create a mock representation of a failed sign in attempt:
+
+```TypeScript
+    ...
+    describe('on failure', () => {
+      beforeEach(() => {
+        (window.fetch as any) = jest.fn(() => {
+          return Promise.resolve({
+            json: () => Promise.resolve({ success: false }),
+          });
+        });
+      });
+
+      it('throws an error', async () => {
+        const expectedErrorMsg = 'Failed to log in. Please try again.';
+        try {
+          await auth.login('test@test.com', 'password');
+          expect(false).toBeFalsy();
+        } catch (error) {
+          expect(error.message).toBe(expectedErrorMsg);
+        }
+      });
+    });
+    ...
+```
+
+With our tests failing let's implement this method.
+
+#### Then Code
+
+Notice that the authentication service will still return a successful response in the event the e-mail address/password combination does not sign a user in. Instead, it will return `{success: false}`. We should use this to our advantage while implementing the `login` method:
+
+```TypeScript
+  ...
+  async login(
+    username: string,
+    password: string,
+  ): Promise<{ token: string; user: User }> {
+    const url = `${process.env.REACT_APP_DATA_SERVICE}/login`;
+    const options = {
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    };
+    const response = await fetch(url, options);
+    const body = await response.json();
+
+    if (!body.success) {
+      throw Error('Failed to log in. Please try again.');
+    }
+
+    const token = body.token;
+    const { id, firstName, lastName, email } = body.user;
+    return { token, user: { id, firstName, lastName, email } };
+  }
+  ...
+```
+
+### Logout
+
+The `logout` method will also make a `POST` request, this time to the `/logout` endpoint.
+
+#### First Test
+
+Under the `login` describe block, create one for `logout`. We'll mock the expected sign out response object and write a test to ensure that we are posting to the sign out endpoint.
+
+```TypeScript
+  ...
+  describe('logout', () => {
+    beforeEach(() => {
+      (window.fetch as any) = jest.fn(() => {
+        return Promise.resolve({
+          json: () => Promise.resolve({}),
+        });
+      });
+    });
+
+    it('POSTs the logout', async () => {
+      await auth.logout();
+      expect(window.fetch).toHaveBeenCalledTimes(1);
+    });
+  });
+  ...
+```
+
+#### Then Code
+
+**Challenge:** Implement the `logout` method.
+
+Take note that the only option required in the `fetch` request is `{ method: 'POST' }`.
+
 ## Conclusion
 
-Now we have two singletons that power our application's authentication. Next, we're going to use them to derive application state and control routing.
+Now we have two singletons that connect to data services. Next, we're going to use them to derive application state and control routing.
