@@ -120,8 +120,8 @@
           "file": "auth"
         },
         {
-          "title": "Auth Context and Hook",
-          "file": "context-hook"
+          "title": "State Management",
+          "file": "state-management"
         },
         {
           "title": "Get Data",
