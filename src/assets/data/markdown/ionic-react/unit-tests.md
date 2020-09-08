@@ -2,10 +2,10 @@
 
 In this lab, you will learn how to:
 
-- Setup support for CI, code coverage, and snapshots
-- Run the existing suite of unit tests
-- Structure unit tests
-- Write tests for the Home Page
+- Support continuous integration, code coverage, and snapshot testing
+- Run the existing suite of unit tests in the application
+- Structure, group, and place unit tests for the application
+- Write unit tests for the Home page component
 
 ## Overview
 

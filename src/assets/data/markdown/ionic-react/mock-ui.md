@@ -2,9 +2,9 @@
 
 In this lab, you will learn how to:
 
-- Model the data
-- Mock up the user interface
-- Leverage responsive design
+- Model data using TypeScript interfaces
+- Mock up a user interface using the Ionic Framework
+- Leverage responsive design to design for multiple form factors
 
 ## Overview
 

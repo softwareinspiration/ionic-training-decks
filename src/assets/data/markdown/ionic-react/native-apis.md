@@ -1,10 +1,11 @@
 # Lab: Access Native APIs
 
-In this lab, you will:
+In this lab, you will learn how to:
 
-- Learn how to use the Capacitor APIs
-- Learn how to perform platform detection
-- Create and use mock objects
+- Access native functionality with Capacitor
+- Use the built-in Capacitor APIs to leverage native functionality
+- Detect which platform the application is currently running on
+- Create and use mock objects for unit testing
 
 ## Overview
 

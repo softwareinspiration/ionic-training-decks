@@ -2,10 +2,10 @@
 
 In this lab, you will learn how to:
 
-- Update the Capacitor configuration
-- Add the iOS and Android platforms
+- Update the application's Capacitor configuration
+- Add the iOS and Android platforms to the application
 - Build and run the application on both platforms
-- Update the splash screen and application icon
+- Update the application's splash screen and application icon
 
 ## Overview
 

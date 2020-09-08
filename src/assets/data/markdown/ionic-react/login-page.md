@@ -2,9 +2,9 @@
 
 In this lab, you will learn how to:
 
-- Create new pages
-- Set up routing
-- Handle component events
+- Create new pages for the application
+- Add additional routes to the application's router
+- Handle and test Ionic Framework component events
 
 ## Overview
 
