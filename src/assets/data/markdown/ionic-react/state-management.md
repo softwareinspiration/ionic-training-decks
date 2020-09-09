@@ -2,23 +2,233 @@
 
 In this lab, you will learn how to:
 
-- Use the React Context API for global state management
+- Use the React Context API to share global state between components
 - Redirect unauthenticated users away from protected routes
--
+- Mock and test React Contexts and conditional navigation
 
 ## Overview
 
-In the last lab we wrote functionality that supports our authentication data service, providing outlets to sign in, to sign out, and to determine if the current application user is already authenticated. In order to bring this functionality to the components that our application is comprised of, we're going to make use of state management. This way, our components can listen for changes to state and act accordingly.
+Now that our application has a way to manage authentication, we need a way to relay this information to our components. We could directly call our business logic from our components but that presents a few problems:
 
-There are several third party state management libraries available (such as Redux and MobX) but we can make use of React Hooks to easily build this functionality out.
+1. Components become tightly coupled to business logic
+2. Explicitly passing props down several levels of the component tree
 
-## Authentication Context
+React Context provides a way for us to <a href="https://reactjs.org/docs/context.html" target="_blank">share data across a component tree</a> without manually passing it through props. It also allows us to decouple our components from our business logic. It's a win-win!
 
-The <a href="https://reactjs.org/docs/context.html" target="_blank">React Context API</a> provides a way to share values between components without having to explicitly pass a prop through each level of the component tree. This allows us to create a "global" state object that any portion of our application can obtain and listen to changes on.
+### Side Note: State Management Libraries
 
-### First Test
+There are countless ways to add state management to a React application; whether it's a third-party library such as <a href="https://redux.js.org/" target="_blank">Redux</a> or <a href="https://mobx.js.org/README.html" target="_blank">MobX</a>, or a mix-and-match of React Contexts + Hooks.
 
-### Then Code
+This training intentionally uses a very light implementation of state management, to decrease the effort needed to port it to your state management solution of choice.
+
+## Defining the State
+
+Before jumping into the Context API, we should first define what pieces of state we'll want to make globally available to our application. We'll want to know if the current user is authenticated, information about the user (provided they are signed in), and ways to sign a user in, and sign a user out.
+
+Create a new file in our `src/models` folder named `AuthState.ts`:
+
+```TypeScript
+import { User } from './User';
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | undefined;
+  login: () => void;
+  logout: () => void;
+}
+```
+
+Note that while not _technically_ part of the authentication state, we need to add function definitions to our `AuthState` to share them across the application.
+
+Add `AuthState` to the models barrel file before moving onto the next section.
+
+## Creating the Context
+
+Create a file `src/auth/AuthContext.tsx`:
+
+```TypeScript
+import React, { createContext, useState, useEffect } from 'react';
+import AuthSingleton from './Authentication';
+import IdentitySingleton from './Identity';
+import { User, AuthState } from '../models';
+
+const initialState: AuthState = {
+  isAuthenticated: false,
+  user: undefined,
+  login: () => {},
+  logout: () => {},
+};
+
+export const AuthContext = createContext<AuthState>(initialState);
+
+export const AuthProvider: React.FC = ({ children }) => {
+  const authentication = AuthSingleton.getInstance();
+  const identity = IdentitySingleton.getInstance();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | undefined>(undefined);
+
+  useEffect(() => {
+    const initializeIdentity = async () => { };
+    initializeIdentity();
+  }, [identity]);
+
+  const login = async (username: string, password: string) => { };
+
+  const logout = async () => {};
+
+  const value: AuthState = {
+    isAuthenticated,
+    user,
+    login,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+```
+
+Let's break down what this file is doing before we write test cases and implement the missing functionality:
+
+1. In order to create a context, we need to provide an initial value for the state
+2. We create the context - `AuthContext` - which our components can use to access our state
+3. We create a component `<AuthProvider />`; children of this component can access `AuthContext`
+4. The `value` prop on `<AuthContext.Provider />` contains the state we wish to share across the application
+
+### Initialization Code
+
+Note the `useEffect` hook in `AuthProvider`. This will be where we place logic that attempts to automatically sign the user in, provided there is a stored authorization token.
+
+#### First Test
+
+Create a new file `src/auth/AuthContext.test.tsx` and scaffold it with the following code:
+
+```TypeScript
+import React, { useContext } from 'react';
+import { render, waitForElement, cleanup } from '@testing-library/react';
+import AuthSingleton, { Authentication } from './Authentication';
+import IdentitySingleton, { Identity } from './Identity';
+import { AuthContext, AuthProvider } from './AuthContext';
+
+const mockToken = '3884915llf950';
+const mockUser = {
+  id: 42,
+  firstName: 'Joe',
+  lastName: 'Tester',
+  email: 'test@test.org',
+};
+
+const MockAuthConsumer: React.FC = () => {
+  const { isAuthenticated, user, login, logout } = useContext(AuthContext);
+
+  return (
+    <div>
+      <div data-testid="isAuthenticated">{isAuthenticated.toString()}</div>
+      <div data-testid="user">{JSON.stringify(user)}</div>
+      <button onClick={() => login('test@test.com', 'test')}>Login</button>
+      <button onClick={() => logout()}>Logout</button>
+    </div>
+  );
+};
+
+const tree = (
+  <AuthProvider>
+    <MockAuthConsumer />
+  </AuthProvider>
+);
+
+describe('<AuthProvider />', () => {
+  let auth: Authentication;
+  let identity: Identity;
+
+  beforeEach(() => {
+    auth = AuthSingleton.getInstance();
+    identity = IdentitySingleton.getInstance();
+  });
+
+  describe('initialization', () => { });
+
+  describe('login', () => { });
+
+  describe('logout', () => { });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+});
+```
+
+Note `MockAuthConsumer` and `tree`. Those are two React components we are creating in order to test `AuthProvider`. React Testing Library tests against the DOM, so we need a test component that reflects the state we want to test. In the `afterEach` block, we use `cleanup` to unmount the component tree created during each test, and make use of Jest's `restoreAllMocks` utility function to restore all our mocks before each test.
+
+Inside the `initialization` block, add the following code:
+
+```TypeScript
+  ...
+  describe('initialization', () => {
+    it('initializes the identity singleton', async () => {
+      jest.spyOn(identity, 'initialize').mockImplementation(
+        () => Promise.resolve()
+      );
+      const { getByTestId, container } = render(tree);
+      await waitForElement(() => getByTestId('isAuthenticated'), { container });
+      expect(identity.initialize).toHaveBeenCalledTimes(1);
+    });
+
+    describe('if a token is stored', () => {
+      beforeEach(() => {
+        jest.spyOn(identity, 'token', 'get').mockImplementation(() => mockToken);
+        jest.spyOn(identity, 'user', 'get').mockImplementation(() => mockUser);
+      });
+
+      it('sets the user', async () => {
+        const { getByTestId, container } = render(tree);
+        const element = await waitForElement(
+          () => getByTestId('user'),
+          { container },
+        );
+        expect(element.textContent).toBe(JSON.stringify(mockUser));
+      });
+
+      it('sets isAuthenticated to true', async () => {
+        const { getByTestId, container } = render(tree);
+        const element = await waitForElement(
+          () => getByTestId('isAuthenticated'),
+          { container },
+        );
+        expect(element.textContent).toBe('true');
+      });
+    });
+
+    describe('if a token is not stored', () => {
+      it('does not set the user', async () => {
+        const { getByTestId, container } = render(tree);
+        const element = await waitForElement(
+          () => getByTestId('user'),
+          { container },
+        );
+        expect(element.textContent).toBe('');
+      });
+
+      it('retains the initial isAuthenticated value', async () => {
+        const { getByTestId, container } = render(tree);
+        const element = await waitForElement(
+          () => getByTestId('isAuthenticated'),
+          { container },
+        );
+        expect(element.textContent).toBe('false');
+      });
+    });
+  });
+  ...
+```
+
+Note how we're using elements rendered on `MockAuthConsumer` to check if initialization logic has run.
+
+#### Then Code
+
+**Challenge**: Implement `initializeIdentity` in `AuthProvider`
+
+### Login
 
 ## Routing
 

@@ -64,7 +64,7 @@ Our identity data service will be responsible for the following functionality:
 
 - Storing the current user's authorization token using <a href="https://capacitorjs.com/docs/apis/storage" target="_blank">Capacitor's Storage API</a>.
 - Getting/setting the current user's authorization token and user object.
-- Attempt to automatically log the user in using the stored authorization token.
+- Attempt to automatically sign the user in using the stored authorization token.
 - Clearing the current user's in-memory authorization token and user object, and removing the current user's stored authorization token.
 
 Open `Identity.ts` so we can scaffold the identity class and complete the singleton implementation:
