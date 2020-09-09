@@ -50,7 +50,7 @@ Create a file `src/auth/AuthContext.tsx`:
 import React, { createContext, useState, useEffect } from 'react';
 import AuthSingleton from './Authentication';
 import IdentitySingleton from './Identity';
-import { User, AuthState } from '../models';
+import { AuthState } from '../models';
 
 const initialState: AuthState = {
   isAuthenticated: false,
@@ -65,7 +65,6 @@ export const AuthProvider: React.FC = ({ children }) => {
   const authentication = AuthSingleton.getInstance();
   const identity = IdentitySingleton.getInstance();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<User | undefined>(undefined);
 
   useEffect(() => {
     const initializeIdentity = async () => { };
@@ -78,7 +77,7 @@ export const AuthProvider: React.FC = ({ children }) => {
 
   const value: AuthState = {
     isAuthenticated,
-    user,
+    user: identity.user,
     login,
     logout,
   };
@@ -160,7 +159,7 @@ describe('<AuthProvider />', () => {
 
 Note `MockAuthConsumer` and `tree`. Those are two React components we are creating in order to test `AuthProvider`. React Testing Library tests against the DOM, so we need a test component that reflects the state we want to test. In the `afterEach` block, we use `cleanup` to unmount the component tree created during each test, and make use of Jest's `restoreAllMocks` utility function to restore all our mocks before each test.
 
-Inside the `initialization` block, add the following code:
+Inside the `initialization` describe block, add the following code:
 
 ```TypeScript
   ...
@@ -226,9 +225,29 @@ Note how we're using elements rendered on `MockAuthConsumer` to check if initial
 
 #### Then Code
 
-**Challenge**: Implement `initializeIdentity` in `AuthProvider`
+**Challenge:** Implement the `initializeIdentity` function inside the `useEffect` of `AuthProvider`.
 
 ### Login
+
+The `login` method we want to expose across the application should:
+
+- Make a call to the authentication singleton and obtain the signed in user's token and user information
+- Set the token and user information in our identity singleton
+- Update the `isAuthenticated` boolean
+- Throw an error if signing in was unsuccessful
+
+#### First Test
+
+Add the following code inside the `login` describe block:
+
+```TypeScript
+...
+...
+```
+
+#### Then Code
+
+**Challenge:** Implement the `login` method of `AuthProvider`.
 
 ## Routing
 

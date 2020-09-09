@@ -499,7 +499,7 @@ Our last set of tests will test the path of a failed response. We'll create a de
         const expectedErrorMsg = 'Failed to log in. Please try again.';
         try {
           await auth.login('test@test.com', 'password');
-          expect(false).toBeFalsy();
+          expect(true).toBeFalsy();
         } catch (error) {
           expect(error.message).toBe(expectedErrorMsg);
         }
