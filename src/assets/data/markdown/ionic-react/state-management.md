@@ -15,11 +15,11 @@ Now that our application has a way to manage authentication, we need a way to re
 
 React Context provides a way for us to <a href="https://reactjs.org/docs/context.html" target="_blank">share data across a component tree</a> without manually passing it through props. It also allows us to decouple our components from our business logic. It's a win-win!
 
-### Side Note: State Management Libraries
+### `!important;` About State Management
 
-There are countless ways to add state management to a React application; whether it's a third-party library such as <a href="https://redux.js.org/" target="_blank">Redux</a> or <a href="https://mobx.js.org/README.html" target="_blank">MobX</a>, or a mix-and-match of React Contexts + Hooks.
+There are countless ways to incorporate state management into a React application. Using a third party library, such as <a href="https://redux.js.org/" target="_blank">Redux</a> and <a href="https://mobx.js.org/README.html" target="_blank">MobX</a>, is a very common way React applications incorporate state management. Additionally, you could create your own flavor of state management using capabilities React provides out-of-the-box.
 
-This training intentionally uses a very light implementation of state management, to decrease the effort needed to port it to your state management solution of choice.
+This training uses a very light-weight state management mechanism (React Contexts only) by design. The topic of state management, and the various ways it can be achieved in a React application, is too broad of a topic to cover in this training. Instead, it is recommended to lift-and-shift the end product of this lab into your state management solution of choice.
 
 ## Defining the State
 
@@ -103,7 +103,7 @@ Create a new file `src/auth/AuthContext.test.tsx` and scaffold it with the follo
 
 ```TypeScript
 import React, { useContext } from 'react';
-import { render, waitForElement, cleanup } from '@testing-library/react';
+import { render, waitForElement, cleanup, fireEvent, wait } from '@testing-library/react';
 import AuthSingleton, { Authentication } from './Authentication';
 import IdentitySingleton, { Identity } from './Identity';
 import { AuthContext, AuthProvider } from './AuthContext';
@@ -121,7 +121,7 @@ const MockAuthConsumer: React.FC = () => {
 
   return (
     <div>
-      <div data-testid="isAuthenticated">{isAuthenticated.toString()}</div>
+      <div data-testid="auth">{isAuthenticated.toString()}</div>
       <div data-testid="user">{JSON.stringify(user)}</div>
       <button onClick={() => login('test@test.com', 'test')}>Login</button>
       <button onClick={() => logout()}>Logout</button>
@@ -142,6 +142,8 @@ describe('<AuthProvider />', () => {
   beforeEach(() => {
     auth = AuthSingleton.getInstance();
     identity = IdentitySingleton.getInstance();
+    identity.initialize = jest.fn(() => Promise.resolve());
+    auth.login = jest.fn(() => Promise.resolve({ token: mockToken, user: mockUser }));
   });
 
   describe('initialization', () => { });
@@ -165,11 +167,8 @@ Inside the `initialization` describe block, add the following code:
   ...
   describe('initialization', () => {
     it('initializes the identity singleton', async () => {
-      jest.spyOn(identity, 'initialize').mockImplementation(
-        () => Promise.resolve()
-      );
-      const { getByTestId, container } = render(tree);
-      await waitForElement(() => getByTestId('isAuthenticated'), { container });
+      const { getByTestId } = render(tree);
+      await waitForElement(() => getByTestId('auth'));
       expect(identity.initialize).toHaveBeenCalledTimes(1);
     });
 
@@ -180,40 +179,33 @@ Inside the `initialization` describe block, add the following code:
       });
 
       it('sets the user', async () => {
-        const { getByTestId, container } = render(tree);
-        const element = await waitForElement(
-          () => getByTestId('user'),
-          { container },
-        );
+        const { getByTestId } = render(tree);
+        const element = await waitForElement(() => getByTestId('user'));
         expect(element.textContent).toBe(JSON.stringify(mockUser));
       });
 
       it('sets isAuthenticated to true', async () => {
-        const { getByTestId, container } = render(tree);
-        const element = await waitForElement(
-          () => getByTestId('isAuthenticated'),
-          { container },
-        );
+        const { getByTestId } = render(tree);
+        const element = await waitForElement(() => getByTestId('auth'));
         expect(element.textContent).toBe('true');
       });
     });
 
     describe('if a token is not stored', () => {
+      beforeEach(() => {
+        jest.spyOn(identity, 'token', 'get').mockImplementation(() => undefined);
+        jest.spyOn(identity, 'user', 'get').mockImplementation(() => undefined);
+      });
+
       it('does not set the user', async () => {
-        const { getByTestId, container } = render(tree);
-        const element = await waitForElement(
-          () => getByTestId('user'),
-          { container },
-        );
+        const { getByTestId } = render(tree);
+        const element = await waitForElement(() => getByTestId('user'));
         expect(element.textContent).toBe('');
       });
 
       it('retains the initial isAuthenticated value', async () => {
-        const { getByTestId, container } = render(tree);
-        const element = await waitForElement(
-          () => getByTestId('isAuthenticated'),
-          { container },
-        );
+        const { getByTestId } = render(tree);
+        const element = await waitForElement(() => getByTestId('auth'));
         expect(element.textContent).toBe('false');
       });
     });
@@ -241,13 +233,105 @@ The `login` method we want to expose across the application should:
 Add the following code inside the `login` describe block:
 
 ```TypeScript
-...
-...
+  ...
+  describe('login', () => {
+    it('calls the authentication singleton', async () => {
+      const { getByText } = render(tree);
+      const element = await waitForElement(() => getByText('Login'));
+      fireEvent.click(element);
+      await wait(() => expect(auth.login).toHaveBeenCalledTimes(1));
+    });
+
+    describe('on success', () => {
+      it('sets the token and user information', async () => {
+        const { getByText, getByTestId } = render(tree);
+        const loginElement = await waitForElement(() => getByText('Login'));
+        const userElement = await waitForElement(() => getByTestId('user'));
+        fireEvent.click(loginElement);
+        await wait(() => expect(userElement.textContent).toBe(JSON.stringify(mockUser)));
+      });
+
+      it('sets isAuthenticated to true', async () => {
+        const { getByText, getByTestId } = render(tree);
+        const loginElement = await waitForElement(() => getByText('Login'));
+        const authElement = await waitForElement(() => getByTestId('auth'));
+        fireEvent.click(loginElement);
+        await wait(() => expect(authElement.textContent).toBe('true'));
+      });
+    });
+
+    describe('on failure', () => {
+      beforeEach(() => {
+        jest.spyOn(auth, 'login').mockImplementation(() => {
+          throw new Error('Failed to log in. Please try again.');
+        });
+      });
+
+      it('throws an error', async () => {
+        const { getByTestId } = render(tree);
+        await waitForElement(() => getByTestId('user'));
+        await wait(() => expect(auth.login).toThrowError('Failed to log in. Please try again.'));
+      });
+    });
+  });
+  ...
 ```
 
 #### Then Code
 
 **Challenge:** Implement the `login` method of `AuthProvider`.
+
+### Logout
+
+The `logout` method we want to expose across the application should:
+
+- Make a call to the authentication singleton to sign the user out
+- Clear the token and user information in our identity singleton
+- Update the `isAuthenticated` boolean
+
+#### First Test
+
+Add the following code inside the `logout` describe block:
+
+```TypeScript
+  ...
+  describe('logout', () => {
+    beforeEach(() => {
+      auth.logout = jest.fn(() => Promise.resolve());
+      identity.clear = jest.fn(() => Promise.resolve());
+    });
+
+    it('calls the authentication singleton', async () => {
+      const { getByText } = render(tree);
+      const element = await waitForElement(() => getByText('Logout'));
+      fireEvent.click(element);
+      await wait(() => expect(auth.logout).toHaveBeenCalledTimes(1));
+    });
+
+    it('clears the token and user calling the identity singleton', async () => {
+      const { getByText } = render(tree);
+      const element = await waitForElement(() => getByText('Logout'));
+      fireEvent.click(element);
+      await wait(() => expect(identity.clear).toHaveBeenCalledTimes(1));
+    });
+
+    it('sets isAuthenticated to false', async () => {
+      const { getByText, getByTestId } = render(tree);
+      const loginElement = await waitForElement(() => getByText('Login'));
+      const logoutElement = await waitForElement(() => getByText('Logout'));
+      const authElement = await waitForElement(() => getByTestId('auth'));
+      fireEvent.click(loginElement);
+      await wait(() => expect(authElement.textContent).toBe('true'));
+      fireEvent.click(logoutElement);
+      await wait(() => expect(authElement.textContent).toBe('false'));
+    });
+  });
+  ...
+```
+
+#### Then Code
+
+**Challenge:** Implement the `logout` method of `AuthProvider`.
 
 ## Routing
 
