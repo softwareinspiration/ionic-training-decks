@@ -15,6 +15,8 @@ Now that our application has a way to manage authentication, we need a way to re
 
 React Context provides a way for us to <a href="https://reactjs.org/docs/context.html" target="_blank">share data across a component tree</a> without manually passing it through props. It also allows us to decouple our components from our business logic. It's a win-win!
 
+We're going to create a React Context to manage our authentication state. With it, we'll force unauthenticated users to our login page, and only allow authenticated users access to our tea page. We'll also use it to integrate sign in and sign out functionality within our components.
+
 ### `!important;` About State Management
 
 There are countless ways to incorporate state management into a React application. Using a third party library, such as <a href="https://redux.js.org/" target="_blank">Redux</a> and <a href="https://mobx.js.org/README.html" target="_blank">MobX</a>, is a very common way React applications incorporate state management. Additionally, you could create your own flavor of state management using capabilities React provides out-of-the-box.
@@ -33,8 +35,8 @@ import { User } from './User';
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | undefined;
-  login: () => void;
-  logout: () => void;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 ```
 
@@ -55,8 +57,8 @@ import { AuthState } from '../models';
 const initialState: AuthState = {
   isAuthenticated: false,
   user: undefined,
-  login: () => {},
-  logout: () => {},
+  login: () => Promise.resolve(),
+  logout: () => Promise.resolve(),
 };
 
 export const AuthContext = createContext<AuthState>(initialState);
@@ -333,20 +335,150 @@ Add the following code inside the `logout` describe block:
 
 **Challenge:** Implement the `logout` method of `AuthProvider`.
 
-## Routing
+## Conditional Routing
 
-### First Test
+Since we want to access our context to control routing, we need to wrap our `<App />` component with our `AuthProvider`. Open `src/App.tsx` and make the following changes:
 
-### Then Code
+```TypeScript
+import React, { useEffect, useContext } from 'react';
+...
+import { AuthProvider, AuthContext } from './auth/AuthContext';
+...
+const App: React.FC = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+
+  useEffect(() => {
+    const { StatusBar } = Plugins;
+    const styleStatusBar = async () => {
+      await StatusBar.setStyle({ style: StatusBarStyle.Dark });
+    };
+    if (isPlatform('android')) styleStatusBar();
+  }, []);
+
+  return (
+    <IonApp>
+      <IonReactRouter>
+        <IonRouterOutlet>
+          <Route path="/" render={() => <Redirect to="/login" />} exact={true} />
+          <Route path="/tea" render={() => (
+            isAuthenticated ? <TeaList /> : <Redirect to="/login" />
+          )} />
+          <Route path="/login" render={() => (
+            isAuthenticated ? <Redirect to="/tea" /> : <Login />
+          )} />
+        </IonRouterOutlet>
+      </IonReactRouter>
+    </IonApp>
+  );
+};
+
+export default () => (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
+```
+
+Serve the application if you are not already doing so. You should be redirected to the login page!
 
 ## Login Button
 
+The next step is to wire up the sign in button in our `<Login />` component to call the `login` method made available through the authentication context.
+
 ### First Test
 
+We needed to create a nested test component that asserted tests for our `AuthProvider` component. For components consuming a context, the inverse is true; we'll need to create a test component that wraps `<Login />` in order to spy on the context.
+
+Open `src/login/Login.test.tsx` and add the following code after the import block:
+
+```TypeScript
+import { AuthContext } from '../auth/AuthContext';
+
+const loginSpy = jest.fn();
+const tree = (
+  <AuthContext.Provider
+    value={{
+      login: loginSpy,
+      isAuthenticated: false,
+      user: undefined,
+      logout: jest.fn(),
+    }}>
+    <Login />
+  </AuthContext.Provider>
+);
+```
+
+Let's update the setup code for the `sign in button` describe block so that we render the `tree` instead of just the `<Login />` component:
+
+```TypeScript
+    ...
+    beforeEach(() => {
+      const { container } = render(tree);
+      ...
+    });
+    ...
+```
+
+Our test component tree will let us spy on `login`, making sure that `<Login />` calls it. Add the following test to the `sign in button` describe block:
+
+```TypeScript
+    ...
+    it('signs the user in', async () => {
+      fireEvent.ionChange(email, 'test@test.com');
+      fireEvent.ionChange(password, 'P@ssword123');
+      fireEvent.click(button);
+      expect(loginSpy).toHaveBeenCalledTimes(1);
+    });
+    ...
+```
+
 ### Then Code
+
+**Challenge:** Modify the `signIn` method in `src/login/Login.tsx` so it calls the `login` method from our authentication context. Catch any errors and set it's `message` property to the login page's `error` property.
 
 ## Logout Button
 
+Our application actually _doesn't_ have any visual cue to sign out, does it? But we know we'll want one, it'll be part of our tea page, and it will be a button. That's a good enough start!
+
 ### First Test
 
+Open `src/tea/TeaList.test.tsx` and modify the file like so:
+
+```TypeScript
+...
+import { AuthContext } from '../auth/AuthContext';
+
+const logoutSpy = jest.fn();
+const tree = (
+  <AuthContext.Provider
+    value={{
+      login: jest.fn(),
+      isAuthenticated: false,
+      user: undefined,
+      logout: logoutSpy,
+    }}>
+    <TeaList />
+  </AuthContext.Provider>
+);
+...
+describe('<TeaList />', () => {
+  ...
+  describe('sign out button', () => {
+    it('signs the user out', async () => {
+      let button: HTMLIonButtonElement;
+      const { container } = render(tree);
+      button = container.querySelector('ion-button')!;
+      fireEvent.click(button);
+      expect(logoutSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+```
+
 ### Then Code
+
+**Challenge:** Have a look at the <a href="" target="_blank">Ionic Toolbar</a> documentation and add a button in the `end` slot. Use the `logOutOutline` icon and wire the button up to the authentication context's `logout` method.
+
+## Conclusion
+
+Our application now authenticates using a live data service and has protected routes! Take a minute to test out what you've accomplished so far. Next, we're going to replace our mock tea data with real data.
