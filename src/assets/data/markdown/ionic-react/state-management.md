@@ -99,7 +99,7 @@ Let's break down what this file is doing before we write test cases and implemen
 
 Note the `useEffect` hook in `AuthProvider`. This will be where we place logic that attempts to automatically sign the user in, provided there is a stored authorization token.
 
-#### First Test
+#### Test First
 
 Create a new file `src/auth/AuthContext.test.tsx` and scaffold it with the following code:
 
@@ -230,7 +230,7 @@ The `login` method we want to expose across the application should:
 - Update the `isAuthenticated` boolean
 - Throw an error if signing in was unsuccessful
 
-#### First Test
+#### Test First
 
 Add the following code inside the `login` describe block:
 
@@ -291,7 +291,7 @@ The `logout` method we want to expose across the application should:
 - Clear the token and user information in our identity singleton
 - Update the `isAuthenticated` boolean
 
-#### First Test
+#### Test First
 
 Add the following code inside the `logout` describe block:
 
@@ -397,7 +397,7 @@ This is where I find the real power in React Hooks. It doesn't matter _what_ upd
 
 The next step is to wire up the sign in button in our `<Login />` component to call the `login` method made available through the authentication context.
 
-### First Test
+### Test First
 
 We needed to create a nested test component that asserted tests for our `AuthProvider` component. For components consuming a context, the inverse is also true; we'll need to create a test component that wraps `<Login />` in order to spy on the context.
 
@@ -452,7 +452,7 @@ Our test component tree will let us spy on `login`, making sure that `<Login />`
 
 Our application actually _doesn't_ have any visual cue to sign out, does it? But we know we'll want one, it'll be part of our tea page, and it will be a button. That's a good enough start!
 
-### First Test
+### Test First
 
 Open `src/tea/TeaList.test.tsx` and modify the file like so:
 

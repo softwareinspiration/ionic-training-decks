@@ -115,7 +115,7 @@ export default class IdentitySingleton {
 
 To provide our application's users with a great user experience, our application will attempt to automatically log users in if an authorization token is found on device. If an authorization token can be found, we'll make a call out to an API endpoint `/users/current` to retrieve the current user's information. Once that data is obtained, we'll set our `token` and `user` properties.
 
-#### First Test
+#### Test First
 
 Open up `Identity.test.ts`. We're going to do some test setup first; defining mocks, writing setup/teardown code and making sure that our singleton implementation works:
 
@@ -314,7 +314,7 @@ There's quite a bit that goes on in making the network request and casting the r
 
 The `initialize` function takes care of the case when the user has already established their identity within our application. We need a way to set the identity after the user has signed in using the login page.
 
-#### First Test
+#### Test First
 
 Open `Identity.test.ts` and add the following test cases under the `initialize` describe block:
 
@@ -412,7 +412,7 @@ Open `Authentication.ts` so we can scaffold the authentication class:
 
 The `login` method will submit the user's inputted e-mail address and password to the authentication data service by making a `POST` request to the `/login` endpoint.
 
-#### First Test
+#### Test First
 
 We'll begin by scaffolding out our test file and adding our singleton assertion test:
 
@@ -544,7 +544,7 @@ Notice that the authentication service will still return a successful response i
 
 The `logout` method will also make a `POST` request, this time to the `/logout` endpoint.
 
-#### First Test
+#### Test First
 
 Under the `login` describe block, create one for `logout`. We'll mock the expected sign out response object and write a test to ensure that we are posting to the sign out endpoint.
 
