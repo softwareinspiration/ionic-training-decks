@@ -337,49 +337,61 @@ Add the following code inside the `logout` describe block:
 
 ## Conditional Routing
 
-Since we want to access our context to control routing, we need to wrap our `<App />` component with our `AuthProvider`. Open `src/App.tsx` and make the following changes:
+Since we need access to our context in order to control routing, we need to wrap the contents of our `<App />` component with `<AuthProvider />`. Open `src/App.tsx` and update it like so:
 
 ```TypeScript
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect } from 'react';
 ...
-import { AuthProvider, AuthContext } from './auth/AuthContext';
+import { AuthProvider } from './auth/AuthContext';
 ...
 const App: React.FC = () => {
-  const { isAuthenticated } = useContext(AuthContext);
-
-  useEffect(() => {
-    const { StatusBar } = Plugins;
-    const styleStatusBar = async () => {
-      await StatusBar.setStyle({ style: StatusBarStyle.Dark });
-    };
-    if (isPlatform('android')) styleStatusBar();
-  }, []);
+  ...
 
   return (
-    <IonApp>
-      <IonReactRouter>
-        <IonRouterOutlet>
-          <Route path="/" render={() => <Redirect to="/login" />} exact={true} />
-          <Route path="/tea" render={() => (
-            isAuthenticated ? <TeaList /> : <Redirect to="/login" />
-          )} />
-          <Route path="/login" render={() => (
-            isAuthenticated ? <Redirect to="/tea" /> : <Login />
-          )} />
-        </IonRouterOutlet>
-      </IonReactRouter>
-    </IonApp>
+    <AuthProvider>
+      <IonApp>
+        <IonReactRouter>
+          <IonRouterOutlet>
+            <Route path="/login" component={Login} exact={true} />
+            <Route path="/tea" component={TeaList} />
+            <Route exact path="/" render={() => <Redirect to="/login" />} />
+          </IonRouterOutlet>
+        </IonReactRouter>
+      </IonApp>
+    </AuthProvider>
   );
 };
 
-export default () => (
-  <AuthProvider>
-    <App />
-  </AuthProvider>
-);
+export default App;
 ```
 
-Serve the application if you are not already doing so. You should be redirected to the login page!
+Note that the routing has been updated so that when the application launches it loads the login page. That's the desired behavior if the current user of the application does not have an authorization token stored, but what if they do?
+
+That scenario will be handled on the login page itself. We will listen for changes to our context's `isAuthenticated` value using a `useEffect`. Once the application determines the user is authenticated we'll replace the login page with our tea page.
+
+Open `src/login/Login.tsx` and make the following modifications:
+
+```TypeScript
+import React, { useState, useEffect, useContext } from 'react';
+import { useHistory } from 'react-router';
+...
+
+const Login: React.FC = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+  const history = useHistory();
+  ...
+  useEffect(() => {
+    if(isAuthenticated) history.replace('/tea');
+  }, [isAuthenticated, history]);
+  ...
+  return (
+    ...
+  );
+};
+export default Login;
+```
+
+This is where I find the real power in React Hooks. It doesn't matter _what_ updates `isAuthenticated`, as long as the user is on the login page and `isAuthenticated` becomes `true` it will redirect. This covers both the already signed-in user and just signing-in user cases.
 
 ## Login Button
 
@@ -387,7 +399,7 @@ The next step is to wire up the sign in button in our `<Login />` component to c
 
 ### First Test
 
-We needed to create a nested test component that asserted tests for our `AuthProvider` component. For components consuming a context, the inverse is true; we'll need to create a test component that wraps `<Login />` in order to spy on the context.
+We needed to create a nested test component that asserted tests for our `AuthProvider` component. For components consuming a context, the inverse is also true; we'll need to create a test component that wraps `<Login />` in order to spy on the context.
 
 Open `src/login/Login.test.tsx` and add the following code after the import block:
 
@@ -447,6 +459,13 @@ Open `src/tea/TeaList.test.tsx` and modify the file like so:
 ```TypeScript
 ...
 import { AuthContext } from '../auth/AuthContext';
+jest.mock('react-router', () => {
+  const actual = jest.requireActual('react-router');
+  return {
+    ...actual,
+    useHistory: () => ({ replace: jest.fn() }),
+  };
+});
 
 const logoutSpy = jest.fn();
 const tree = (
@@ -477,7 +496,14 @@ describe('<TeaList />', () => {
 
 ### Then Code
 
-**Challenge:** Have a look at the <a href="" target="_blank">Ionic Toolbar</a> documentation and add a button in the `end` slot. Use the `logOutOutline` icon and wire the button up to the authentication context's `logout` method.
+**Challenge:** Have a look at the <a href="https://ionicframework.com/docs/api/toolbar" target="_blank">Ionic Toolbar</a> documentation and add a button in the `end` slot. Use the `logOutOutline` icon and wire the button up to the following method:
+
+```TypeScript
+const handleLogout = async () => {
+  await logout();
+  history.replace('/login');
+};
+```
 
 ## Conclusion
 
