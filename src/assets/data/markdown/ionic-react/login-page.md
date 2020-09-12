@@ -241,7 +241,7 @@ Before moving on with our login page, let's take a detour to add a dependency th
 Terminate any running processes and run the following command in the terminal:
 
 ```bash
-$ npm install --save-dev @ionic/react-test-utils
+$ npm install @ionic/react-test-utils
 ```
 
 Open up `src/setupTests.ts` and add the following lines:
