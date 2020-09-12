@@ -331,4 +331,4 @@ That looks much better! Make sure your tests are still passing.
 
 ## Conclusion
 
-You have created a singleton to get the tea data from the data service and covert it into the model used within the application. Next, we will wire up the tea page to use this data.
+You have created a singleton to get the tea data from the data service and convert it into the model used within the application. Next, we will wire up the tea page to use this data.
