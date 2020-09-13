@@ -2,8 +2,8 @@
 
 In this lab, you will learn how to:
 
-- Use query parameters to create dynamic routes
-- Leverage query parameters within components
+- Use path parameters to create dynamic routes
+- Leverage path parameters within components
 
 ## Overview
 
@@ -19,13 +19,11 @@ Now do the bare minimum needed to create and export a component named `<TeaDetai
 
 Make sure update your import statements, delete `src/tea/__snapshots__`, and regenerate your snapshots.
 
-## Adding the Details Route
-
-### Create the Files
+## Create the Files
 
 Create two files in `src/tea` named `TeaDetails.tsx` and `TeaDetails.test.tsx`. Do the bare minimum needed to create and export a component named `<TeaDetails />`.
 
-### Adding the Details Route
+## Adding the Details Route
 
 Head over to `App.tsx`. We need to add an additional route inside our `<IonRouterOutlet>`:
 
@@ -41,7 +39,7 @@ Head over to `App.tsx`. We need to add an additional route inside our `<IonRoute
 
 With a little URL hacking you should be able to navigate to this page, but you will need to supply an ID like this: `/tea/details/1`. Pretty neat!
 
-### Update the Teas page
+## Update the Teas page
 
 The tea category detail route has been defined but our application has no idea how to navigate to it. So let's add the child page to the application's routing flow by navigating the user to the child page upon clicking one of the tea category cards.
 
@@ -55,7 +53,7 @@ Open `src/tea/list/TeaList.tsx`. Modify the `<IonCard>` component by adding the 
 
 The `button` prop which adds some styling to the card, making it behave in a "clickable" fashion.
 
-Next let's define `showDetailsPage`. Add the following code below the `useIonViewWillEnter` block:
+Next let's define `showDetailsPage()`. Add the following code below the `useIonViewWillEnter` block:
 
 ```TypeScript
 const TeaList: React.FC = () => {
@@ -68,11 +66,81 @@ const TeaList: React.FC = () => {
 export default TeaList;
 ```
 
-#### Test First
+Notice that we're calling `history.push()` whereas we've seen `history.replace()`. When signing a user in or signing a user out, we want to replace the entire history stack (so they can't go back to an invalid application state). In this case however, we want to push a new route onto the stack so the application user can go back to our tea page if they desire.
 
-#### Then Code
+Now when we click on a card we should go to the tea category detail page and the path should include the ID of the specific tea category.
 
 ## The Tea Details Page
+
+### Reading the ID Parameter
+
+We need a way to fetch the `:id` path parameter so that our child page can retrieve information for the correct tea category. Path parameters can be obtained from the `match` prop available from `react-router`'s `RouteComponentProps` type.
+
+Open `src/tea/TeaDetails.tsx` and make the following adjustments:
+
+```TypeScript
+import { RouteComponentProps } from 'react-router';
+
+interface TeaDetailsProps
+  extends RouteComponentProps<{
+    id: string;
+  }> {}
+
+
+const TeaDetails: React.FC<TeaDetailsProps> = ({ match }) => {
+  return (
+    ...
+  );
+};
+export default TeaDetails;
+```
+
+Note how we use a TypeScript interface to strongly type the props object. This interface gives us type safety and code completion inside of the component.
+
+### Navigating Back
+
+We also need a way for application users to navigate back, otherwise our application users will be stuck (unless they are on a device that has a back button)! Let's fix that:
+
+1. Go to the <a href="https://ionicframework.com/docs/api/back-button" target="_blank">IonBackButton documentation</a>
+2. Take a look at the React Usage example, the first one is marked "Default back button"
+3. **Challenge:** Try adding the appropriate mark-up from there to `<TeaDetails />`.
+
+If you were already on the child page when you did this, then you did not see a back button. This is because when the page refreshed, the navigation stack was destroyed. If your app needs to still display the back button even if there is no navigation stack (for example, if you are going to deploy to the web where someone _could_ directly go to the tea category details page via a link), use the `defaultHref` property.
+
+### Displaying the Data
+
+**Challenge:** We'll start this section off with a challenge. Write logic to fetch the specific tea category to display on the page.
+
+Once complete, we can start adding information to the page. Update the component's template to match the following:
+
+```JSX
+  <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/tea" />
+          </IonButtons>
+          <IonTitle>Details</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent>
+        <IonHeader collapse="condense">
+          <IonToolbar>
+            <IonTitle size="large">Details</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <div className="ion-padding">
+          <div
+            className="ion-justify-content-center"
+            style={{ display: 'flex' }}>
+            <IonImg src={teaCategory?.image} />
+          </div>
+          <h1>{teaCategory?.name}</h1>
+          <p>{teaCategory?.description}</p>
+        </div>
+      </IonContent>
+    </IonPage>
+```
 
 ## Conclusion
 
