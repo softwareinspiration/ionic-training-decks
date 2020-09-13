@@ -132,6 +132,11 @@
           "file": "use-data"
         },
         {
+          "title": "Details Page",
+          "file": "details-page"
+        },
+
+        {
           "title": "Reusable Component",
           "file": "resuable-component"
         },
