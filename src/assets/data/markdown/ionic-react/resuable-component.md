@@ -265,7 +265,7 @@ Go ahead and fill in the `when disabled` block:
   ...
 ```
 
-Note that `getByLabelText` works to get elements by using the value set in their `aria-label` property. Pretty neat! You should also take a look in `src/shared/components/rating/__snapshots__/Rating.test.tsx.snap` to see the two separate snapshots written.
+Note that `getByLabelText` can retrieve elements based on the value of their `aria-label` property. Pretty neat! You should also take a look in `src/shared/components/rating/__snapshots__/Rating.test.tsx.snap` to see the two separate snapshots written.
 
 #### Then Code
 
@@ -323,6 +323,33 @@ Update `src/models/Tea.ts` and add the following property:
 ### Get the Rating
 
 #### Test First
+
+Open up `src/tea/TeaCategories.test.ts`. In the `expectedTeas` array, add a rating to each like so:
+
+```TypeScript
+  {
+    id: 1,
+    name: 'Green',
+    image: 'green.jpg',
+    description: 'Green tea description.',
+    rating: 4
+  },
+```
+
+For some of them, use zero. This will be the default value for tea categories that do not yet have a rating.
+
+The rating is not part of the data coming back from our API, so the result set that we expect back from the API should not include it. Update `resultTeas` so it deletes the `rating` like is done for `image`:
+
+```TypeScript
+const resultTeas = () => {
+  return expectedTeas.map((t: Tea) => {
+    const tea = { ...t };
+    delete tea.image;
+    delete tea.rating;
+    return tea;
+  });
+};
+```
 
 #### Then Code
 
