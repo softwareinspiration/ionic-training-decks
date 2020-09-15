@@ -141,7 +141,9 @@ export const Rating: React.FC<RatingProps> = ({
   disabled = false,
   onRatingChange,
 }) => {
-  const [rating, setRating] = useState<number>(initialRating);
+  const [rating, setRating] = useState<number>(0);
+
+  useEffect(() => setRating(initialRating), [initialRating]);
 
   const handleRatingChange = (rating: number) => {
     //TODO: Fill this in
@@ -351,20 +353,199 @@ const resultTeas = () => {
 };
 ```
 
+Then update the setup and teardown code in order to mock the `Storage` Capacitor API. When mocking the `get()` function, the return values will need to match however you set the ratings in the test data:
+
+```TypeScript
+  ...
+  beforeEach(() => {
+    ...
+      (Plugins.Storage.get as any) = jest.fn(({ key }: { key: string }) => {
+      switch (key) {
+        case 'rating1':
+          return Promise.resolve({ value: 4 });
+        // Repeat for all expectedTeas with a non-zero rating.
+        // The key is `rating${id}`
+        default:
+          return Promise.resolve();
+      }
+    });
+    (Plugins.Storage.set as any) = jest.fn();
+  });
+  ...
+  afterEach(() => jest.restoreAllMocks());
+  ...
+```
+
 #### Then Code
+
+At this point you should have two failing tests. We need to update the code in `src/tea/TeaCategories.ts` to make them pass.
+
+The first step is to make our private method `fromJsonToTea` asyncrhonous and have it grab the rating from storage:
+
+```TypeScript
+  ...
+  private async fromJsonToTea(obj: any): Promise<Tea> {
+    const { Storage } = Plugins;
+    const rating = await Storage.get({ key: `rating${obj.id}` });
+    return {
+      ...obj,
+      image: require(`../assets/images/${this.images[obj.id - 1]}.jpg`),
+      rating: parseInt(rating?.value || '0', 10),
+    };
+  }
+  ...
+```
+
+But this makes `getAll()` and `get()` unhappy. The `get()` method can be easily fixed by placing an `await` keyword as part of the return statement:
+
+```TypeScript
+    return await this.fromJsonToTea(body);
+```
+
+Fixing `getAll()` is a bit trickier. We still need to add the `async` keyword to our return statement, but we need to asynchronous our `map()` call and place it inside `Promise.all()` so that we return resolved tea items instead of an array of pending Promises:
+
+```TypeScript
+    return await Promise.all(
+      body.map(async (item: any) => await this.fromJsonToTea(item)),
+    );
+```
+
+Here is the full code for each of the methods:
+
+```TypeScript
+  async getAll(token: string): Promise<Array<Tea>> {
+    const url = `${process.env.REACT_APP_DATA_SERVICE}/tea-categories`;
+    const body = await this.request(url, token);
+    return await Promise.all(
+      body.map(async (item: any) => await this.fromJsonToTea(item)),
+    );
+  }
+
+  async get(id: number, token: string): Promise<Tea | undefined> {
+    const url = `${process.env.REACT_APP_DATA_SERVICE}/tea-categories/${id}`;
+    const body = await this.request(url, token);
+    return await this.fromJsonToTea(body);
+  }
+```
+
+Your tests should now pass!
 
 ### Saving to Storage
 
+Saving is pretty straightforward. Our `save()` method will take a full `Tea` model but we will only save the rating, since the tea category itself is currently read-only.
+
 #### Test First
 
+Add a new describe block after the describe block for `get one`:
+
+```TypeScript
+  ...
+  describe('save', () => {
+    it('saves the rating', async () => {
+      const tea = { ...expectedTeas[4] };
+      tea.rating = 4;
+      await teaCategories.save(tea);
+      expect(Plugins.Storage.set).toHaveBeenCalledTimes(1);
+      expect(Plugins.Storage.set).toHaveBeenCalledWith({
+        key: 'rating5',
+        value: '4',
+      });
+    });
+  });
+  ...
+```
+
+Now let's implement the method.
+
 #### Then Code
+
+Add the following method to our `TeaCategories` class:
+
+```TypeScript
+  async save(tea: Tea): Promise<void> {
+    const { Storage } = Plugins;
+    return Storage.set({
+      key: `rating${tea.id}`,
+      value: tea.rating?.toString() || '0',
+    });
+  }
+```
+
+Save and your test should now pass. One more step before we add it to the details page.
 
 ### Update the Hook
 
+Recall that we have a custom React Hook named `useTeaCategories` where we place all of our tea data service logic. We'll be adding a new method called `save()` to this hook.
+
 #### Test First
+
+Let's go ahead and write a describe block for our new hook functionality. Open `src/tea/useTeaCategories.test.ts` and modify the test suite to include a describe block for saving a tea category:
+
+```TypeScript
+  ...
+  describe('saves a tea category', () => {
+    it('stores a rating for a specific tea category', async () => {
+      const tea = {
+        id: 1,
+        name: 'Green',
+        description: '',
+        image: '',
+        rating: 2,
+      };
+      teaCategories.save = jest.fn(() => Promise.resolve());
+      const { result } = renderHook(() => useTeaCategories());
+      await act(async () => {
+        await result.current.save(tea);
+      });
+      expect(teaCategories.save).toHaveBeenCalledTimes(1);
+    });
+  });
+  ...
+  afterEach(() => {
+    ...
+  });
+```
 
 #### Then Code
 
+Update `src/tea/useTeaCategories.ts` so that it has a `save` function and return it along with the other properties already returned by the hook:
+
+```TypeScript
+...
+export const useTeaCategories = () => {
+  ...
+  const save = async (tea: Tea): Promise<void> => {
+    return await teaCategories.save(tea);
+  };
+
+  return { error, getCategories, getCategory, save };
+};
+```
+
+Now we can add it to our detail page!
+
 ## Details Page Modifications
 
+Head back over to `src/tea/details/TeaDetails.tsx`. In this file we'll add `save` to our list of variables destructured from `useTeaCategories()` and add props to where we render the `<Rating />` component:
+
+```TypeScript
+...
+const TeaDetails: React.FC<TeaDetailsProps> = ({ match }) => {
+  const { getCategory, save } = useTeaCategories();
+  ...
+  return (
+    ...
+    <Rating
+      onRatingChange={rating => save({ ...teaCategory!, rating })}
+      initialRating={teaCategory?.rating}
+      disabled={!teaCategory}
+    />
+    ...
+  );
+};
+export default TeaDetails;
+```
+
 ## Conclusion
+
+Congratulations! You have created and consumed your first reusable component. Up next we will add tabbed navigation to our application.
