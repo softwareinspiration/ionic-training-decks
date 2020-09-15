@@ -12,13 +12,13 @@ It's fairly common for front-end applications to consist of parts and modules th
 
 We're going to build a reusable ratings component. This component will allow an application user to supply a rating from 0-5 and emit an event when the action is performed. Our details page will handle the event, obtaining the rating number from the component and using it to update our tea categories data set.
 
-## Shared Feature Folder
+## Shared Components Feature Folder
 
-Start by creating a new folder in `src/` named `shared`. Create a subfolder inside called `components`. You should now have a path `src/shared/components`; add a file named `index.ts` inside of it. This barrel file will export any shared components created while developing the application.
+Start by creating a new folder in `src/` named `components` and add a file named `index.ts` inside of it.Create a subfolder inside called `components`. This barrel file will export any shared components created while developing the application.
 
 ## Create `<Rating />` Component
 
-Create a new subfolder `src/shared/components/rating`. Inside this folder, create and scaffold the following files:
+Create a new subfolder `src/components/rating`. Inside this folder, create and scaffold the following files:
 
 - `Rating.tsx` - do the minimum required to export a `<Rating />` component; **do not** create a default export
 - `Rating.test.tsx` - create the initial describe block for the component and add a snapshot test to ensure it `renders consistently`
@@ -28,7 +28,7 @@ Add the `<Rating />` component under the description paragraph in `<TeaDetails /
 
 ```TypeScript
 ...
-import { Rating } from '../../shared/components';
+import { Rating } from '../../components';
 ...
 const TeaDetails: React.FC<TeaDetailsProps> = ({ match }) => {
   ...
@@ -48,7 +48,7 @@ Confirm that your component displays under the tea category description. It's no
 
 ### Build the Template
 
-Return to `src/shared/components/rating/Rating.tsx` and let's update the template to display a row of five stars:
+Return to `src/components/rating/Rating.tsx` and let's update the template to display a row of five stars:
 
 ```TypeScript
 import React from 'react';
@@ -99,7 +99,7 @@ Try clicking different rating values. So far so good!
 
 The rating component works well but the stars are a _little_ small and close together, especially for people with larger hands. Let's apply a little styling to make the experience better.
 
-Add the following to `src/shared/components/rating/Rating.css`:
+Add the following to `src/components/rating/Rating.css`:
 
 ```CSS
 .rating ion-icon {
@@ -121,7 +121,7 @@ The `<Rating />` component visually looks good, but it's not very useful for com
 
 Component props were touched upon building the `TeaDetailsProps` interface. We will leverage component props to enhance the rating component's functionality.
 
-Update `src/shared/components/rating/Rating.tsx` to match the following:
+Update `src/components/rating/Rating.tsx` to match the following:
 
 ```TypeScript
 import React, { useState } from 'react';
@@ -175,7 +175,7 @@ Now we need to write some unit tests before we complete the implementation of th
 
 #### Test First
 
-Open up `src/shared/components/rating/Rating.test.tsx`. You should notice that your `renders consistently` test has an error. That's OK, let's remove the entire test. Instead, we will create two different snapshot tests, one for when the `<Rating />` component is enabled, and one when it's disabled. Replace your existing code file with the following contents:
+Open up `src/components/rating/Rating.test.tsx`. You should notice that your `renders consistently` test has an error. That's OK, let's remove the entire test. Instead, we will create two different snapshot tests, one for when the `<Rating />` component is enabled, and one when it's disabled. Replace your existing code file with the following contents:
 
 ```TypeScript
 import React from 'react';
@@ -267,7 +267,7 @@ Go ahead and fill in the `when disabled` block:
   ...
 ```
 
-Note that `getByLabelText` can retrieve elements based on the value of their `aria-label` property. Pretty neat! You should also take a look in `src/shared/components/rating/__snapshots__/Rating.test.tsx.snap` to see the two separate snapshots written.
+Note that `getByLabelText` can retrieve elements based on the value of their `aria-label` property. Pretty neat! You should also take a look in `src/components/rating/__snapshots__/Rating.test.tsx.snap` to see the two separate snapshots written.
 
 #### Then Code
 
