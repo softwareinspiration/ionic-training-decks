@@ -177,7 +177,246 @@ Create two more files inside `src/tasting-notes`: `useTastingNotes.ts` and `useT
 
 #### Test First
 
-Fill in `
+Fill in `useTastingNotes.test.ts`:
+
+```TypeScript
+import { renderHook, act, cleanup } from '@testing-library/react-hooks';
+import { useTastingNotes } from './useTastingNotes';
+import IdentitySingleton, { Identity } from '../auth/Identity';
+import TastingNotesSingleton, {
+  TastingNotesService,
+} from './TastingNotesService';
+import { TastingNote } from '../models';
+import { doesNotThrow } from 'assert';
+
+const mockToken = '3884915llf950';
+const mockNote = {
+  id: 4,
+  brand: 'Lipton',
+  name: 'Yellow Label',
+  notes: 'Overly acidic, highly tannic flavor',
+  rating: 1,
+  teaCategoryId: 3,
+};
+
+describe('useTastingNotes', () => {
+  let identity: Identity;
+  let tastingNotesService: TastingNotesService;
+
+  beforeEach(() => {
+    identity = IdentitySingleton.getInstance();
+    identity['_token'] = mockToken;
+    tastingNotesService = TastingNotesSingleton.getInstance();
+  });
+
+  describe('get all user tasting notes', () => {
+    it('returns an array of TastingNote', async () => {
+      tastingNotesService.getAll = jest.fn(() => Promise.resolve([]));
+      let notes: Array<TastingNote> | undefined;
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        notes = await result.current.getAllNotes();
+      });
+      expect(notes).toEqual([]);
+    });
+
+    it('sets an error if there is a failure', async () => {
+      const error = 'Uh-oh, something went wrong!';
+      tastingNotesService.getAll = jest.fn(() => {
+        throw new Error(error);
+      });
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.getAllNotes();
+      });
+      expect(result.current.error).toEqual(error);
+    });
+  });
+  describe('get the specific user tasting note', () => {
+    it('returns the specific TastingNote', async () => {
+      tastingNotesService.get = jest.fn(() => Promise.resolve(mockNote));
+      let note: TastingNote | undefined;
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        note = await result.current.getNote(4);
+      });
+      expect(note).toEqual(mockNote);
+    });
+
+    it('sets an error if there is a failure', async () => {
+      const error = 'Uh-oh, something went wrong!';
+      tastingNotesService.get = jest.fn(() => {
+        throw new Error(error);
+      });
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.getNote(4);
+      });
+      expect(result.current.error).toEqual(error);
+    });
+  });
+
+  describe('delete the specific user tasting note', () => {
+    it('returns the specific TastingNote', async () => {
+      tastingNotesService.delete = jest.fn(() => Promise.resolve());
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.deleteNote(4);
+      });
+      expect(tastingNotesService.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('sets an error if there is a failure', async () => {
+      const error = 'Uh-oh, something went wrong!';
+      tastingNotesService.delete = jest.fn(() => {
+        throw new Error(error);
+      });
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.deleteNote(4);
+      });
+      expect(result.current.error).toEqual(error);
+    });
+  });
+
+  describe('save the specific user tasting note', () => {
+    it('saves a specific TastingNote', async () => {
+      tastingNotesService.save = jest.fn(() => Promise.resolve());
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.saveNote(mockNote);
+      });
+      expect(tastingNotesService.save).toBeCalledTimes(1);
+    });
+
+    it('saves a new TastingNote', async () => {
+      const note = { ...mockNote };
+      delete note.id;
+      tastingNotesService.save = jest.fn(() => Promise.resolve());
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.saveNote(note);
+      });
+      expect(tastingNotesService.save).toBeCalledTimes(1);
+    });
+
+    it('sets an error if there is a failure', async () => {
+      const error = 'Uh-oh, something went wrong!';
+      tastingNotesService.save = jest.fn(() => {
+        throw new Error(error);
+      });
+      const { result } = renderHook(() => useTastingNotes());
+      await act(async () => {
+        await result.current.saveNote(mockNote);
+      });
+      expect(result.current.error).toEqual(error);
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+});
+```
+
+#### Then Code
+
+Fill in `useTastingNotes.ts`:
+
+```TypeScript
+import { useState } from 'react';
+import IdentitySingleton from '../auth/Identity';
+import TastingNotesSingleton from './TastingNotesService';
+import { TastingNote } from '../models';
+
+export const useTastingNotes = () => {
+  const identityService = IdentitySingleton.getInstance();
+  const tastingNotesService = TastingNotesSingleton.getInstance();
+  const [error, setError] = useState<string>('');
+
+  const getAllNotes = async (): Promise<Array<TastingNote> | undefined> => {
+    try {
+      return await tastingNotesService.getAll(identityService.token || '');
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const getNote = async (id: number): Promise<TastingNote | undefined> => {
+    try {
+      return await tastingNotesService.get(identityService.token || '', id);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const deleteNote = async (id: number) => {
+    try {
+      return await tastingNotesService.delete(identityService.token || '', id);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const saveNote = async (note: TastingNote) => {
+    try {
+      return await tastingNotesService.save(identityService.token || '', note);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  return { error, getAllNotes, getNote, deleteNote, saveNote };
+};
+
+```
+
+## Create the Editor Component
+
+Now we are getting into the new stuff. Back to the usual format. 🤓
+
+Let's create a composite component that we can use to both create new tasting notes or update existing notes. This component will be created in the tasting notes feature folder since it is going to be specific to that feature of the application.
+
+Create a new folder inside of `src/tasting-notes` named `editor`. Add the following files in into the newly created folder:
+
+- `TastingNoteEditor.css`
+- `TastingNoteEditor.tsx`
+- `TastingNoteEditor.test.tsx`
+
+In `TastingNoteEditor.tsx` add the following code:
+
+```TypeScript
+import React from 'react';
+import { IonModal } from '@ionic/react';
+
+interface TastingNoteEditorProps {
+  isOpen: boolean;
+  onSave: () => void;
+}
+
+const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
+  isOpen,
+  onSave,
+}) => {
+  return (
+    <IonModal isOpen={isOpen} swipeToClose={true} backdropDismiss={false}>
+      <p>This is my modal!</p>
+    </IonModal>
+  );
+};
+export default TastingNoteEditor;
+```
+
+Here we are creating a shell modal component to house our editor in. Since we want the `TastingNotes` component to control whether the modal is open or closed, we'll have the parent component pass in props so that they can tell `TastingNoteEditor` when it's appropriate to show or hide itself.
+
+### Hookup the Modal
+
+The first thing we need to do is add the `TastingNoteEditor` to our tasting notes page so we can test out the component for the modal as we develop it. We will launch the model for the "add a new note" scenario from a floating action button on the `TastingNotes` component.
+
+#### Test First
+
+#### Then Code
 
 ## Conclusion
 
