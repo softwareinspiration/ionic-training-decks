@@ -392,15 +392,17 @@ import { IonModal } from '@ionic/react';
 
 interface TastingNoteEditorProps {
   isOpen: boolean;
-  onSave: () => void;
+  setIsOpen: (value: React.SetStateAction<boolean>) => void;
+  id?: number;
 }
 
 const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
   isOpen,
-  onSave,
+  setIsOpen
+  id,
 }) => {
   return (
-    <IonModal isOpen={isOpen} swipeToClose={true} backdropDismiss={false}>
+    <IonModal isOpen={isOpen}>
       <p>This is my modal!</p>
     </IonModal>
   );
@@ -408,7 +410,7 @@ const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
 export default TastingNoteEditor;
 ```
 
-Here we are creating a shell modal component to house our editor in. Since we want the `TastingNotes` component to control whether the modal is open or closed, we'll have the parent component pass in props so that they can tell `TastingNoteEditor` when it's appropriate to show or hide itself.
+Here we are creating a shell modal component to house our editor in. Since we want the `TastingNotes` component to control whether the modal is open or closed, we'll have the parent component pass in props so that they can tell `TastingNoteEditor` when it's appropriate to show or hide itself. We also added a prop named `id` which we will use later. It will help us when we need to edit an existing note.
 
 ### Hookup the Modal
 
@@ -416,7 +418,93 @@ The first thing we need to do is add the `TastingNoteEditor` to our tasting note
 
 #### Test First
 
+Add the following describe block to `TastingNotes.test.tsx`:
+
+```TypeScript
+  ...
+  describe('add new note', () => {
+    it('displays the editor modal', async () => {
+      const { container, getByText } = render(<TastingNotes />);
+      const button = container.querySelector('ion-fab-button')!;
+      fireEvent.click(button);
+      const modal = await waitForElement(() =>
+        getByText('Add New Tasting Note'),
+      );
+      expect(modal).toBeDefined();
+    });
+  });
+  ...
+```
+
+Don't forget to add any imports.
+
 #### Then Code
+
+From here, the markup is pretty easy. Modify `TastingNotes` to add the following code:
+
+```TypeScript
+...
+const TastingNotes: React.FC = () => {
+  const [showModal, setShowModal] = useState<boolean>(false);
+
+  return (
+    <IonPage>
+      <IonHeader>
+        ...
+      </IonHeader>
+      <IonContent>
+        <IonHeader collapse="condense">
+          ...
+        </IonHeader>
+        <IonFab vertical="bottom" horizontal="end" slot="fixed">
+          <IonFabButton onClick={() => setShowModal(true)}>
+            <IonIcon icon={add} />
+          </IonFabButton>
+        </IonFab>
+        <TastingNoteEditor isOpen={showModal} setIsOpen={setShowModal} />
+      </IonContent>
+    </IonPage>
+  );
+};
+export default TastingNotes;
+```
+
+Don't worry, the test you added will still be failing. We'll fix that next.
+
+### Mock the Editor Component
+
+#### Basic Layout
+
+To make our test in `TastingNotes.test.tsx` pass, we need some text that says "Add New Tasting Note". Fortuantely, that is _exactly_ what the header of our `TastingNoteEditor` component will be.
+
+Let's lay our some more basics of the form's UI - we'll want a header section with a title, a footer section with a button, and the content that will be our form. So let's start there.
+
+Open up `src/tasing-notes/editor/TastingNoteEditor.tsx` and replace the existing `<p>` tag inside the `IonModal` component with the following:
+
+```JSX
+<IonHeader>
+  <IonToolbar>
+    <IonTitle>Add New Tasting Note</IonTitle>
+    <IonButtons slot="primary">
+      <IonButton id="cancel-button" onClick={() => setIsOpen(false)}>
+        <IonIcon slot="icon-only" icon={close} />
+      </IonButton>
+    </IonButtons>
+  </IonToolbar>
+</IonHeader>
+
+<IonContent>
+  <form></form>
+</IonContent>
+
+<IonFooter>
+  <IonToolbar>
+    <IonButton expand="full">Add</IonButton>
+  </IonToolbar>
+</IonFooter>
+```
+
+#### Inputs
 
 ## Conclusion
 
