@@ -128,24 +128,24 @@ import { TastingNote } from '../models';
 
 export class TastingNotesService {
   async getAll(token: string): Promise<Array<TastingNote>> {
-    const url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasing-notes`;
+    const url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasting-notes`;
     return await this.request(url, token);
   }
 
   async get(token: string, id: number): Promise<TastingNote> {
-    const url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasing-notes/${id}`;
+    const url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasting-notes/${id}`;
     return await this.request(url, token);
   }
 
   async delete(token: string, id: number): Promise<void> {
     const options = { method: 'DELETE' };
-    const url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasing-notes/${id}`;
+    const url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasting-notes/${id}`;
     return await this.request(url, token, options);
   }
 
   async save(token: string, note: TastingNote): Promise<void> {
     const options = { method: 'POST' };
-    let url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasing-notes`;
+    let url = `${process.env.REACT_APP_DATA_SERVICE}/user-tasting-notes`;
     if (note.id) url += `/${note.id}`;
     return await this.request(url, token, options);
   }
@@ -530,7 +530,7 @@ const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
   setIsOpen,
   id
 }) => {
-  const { handleSubmit, control, formState } = useForm({
+  const { handleSubmit, control, formState } = useForm<TastingNote>({
     mode: 'onChange',
     defaultValues,
   });
@@ -637,7 +637,72 @@ The only initialization we need at this point is to fetch the list of tea catego
 
 ##### Test First
 
+Add the following mocks to `src/tasting-notes/editor/TastingNoteEditor.test.tsx`:
+
+```TypeScript
+const MockAddTastingNoteEditor: React.FC = () => {
+  const [isOpen, setIsOpen] = useState<boolean>(true);
+  return <TastingNoteEditor isOpen={isOpen} setIsOpen={setIsOpen} />;
+};
+
+const mockTeaCategories = [
+  {
+    id: 7,
+    name: 'White',
+    image: 'assets/img/white.jpg',
+    description: 'White tea description.',
+    rating: 5,
+  },
+  {
+    id: 8,
+    name: 'Yellow',
+    image: 'assets/img/yellow.jpg',
+    description: 'Yellow tea description.',
+    rating: 3,
+  },
+];
+```
+
+Here we are creating a mock component that will keep `TastingEditorNote` open for our test cases. We also have a small mock list of tea categories for our `ion-select` element to use for options. Now replace the existing `describe` block with the following:
+
+```TypeScript
+describe('<TastingNoteEditor />', () => {
+  let teaCategoriesService: TeaCategories;
+  let tastingNotesService: TastingNotesService;
+
+  beforeEach(() => {
+    teaCategoriesService = TeaCategoriesSingleton.getInstance();
+    teaCategoriesService.getAll = jest.fn(() =>
+      Promise.resolve(mockTeaCategories),
+    );
+  });
+
+  describe('initialization', () => {
+    it('binds the tea select', async () => {
+      const { container } = render(<MockAddTastingNoteEditor />);
+      const options = await waitForElement(
+        () => container.querySelector('ion-select')!.children,
+      );
+      expect(options.length).toEqual(2);
+      expect(options[0].textContent).toEqual('White');
+      expect(options[1].textContent).toEqual('Yellow');
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+});
+```
+
+Don't forget to remove the existing snapshot test; we'll create new tests later on to create snapshots for when the editor is in add mode and when it's in update mode.
+
 ##### Then Code
+
+We've seen this code before. I'll leave it to you to implement.
+
+**Challenge:** Implement logic so that the list of `categories` is set when the component is initialized.
 
 #### Perform the Add
 
@@ -645,9 +710,43 @@ Adding a tasting note is relatively easy: create a tasting note object using the
 
 ##### Test First
 
+TODO: Having trouble figuring out how to assert this.
+
 ##### Then Code
 
+First let's modify the button in the footer. We want it to be disabled if the form is not valid and we need to supply it a click event:
+
+```JSX
+    ...
+    <IonButton
+      disabled={!formState.isValid}
+      expand="full"
+      onClick={handleSubmit(data => submitNote(data))}>
+      Add
+    </IonButton>
+    ...
+```
+
+Now let's setup the `submitNote()` function:
+
+```TypeScript
+  ...
+  const submitNote = async (data: TastingNote) => {
+    await saveNote(data);
+    setIsOpen(false);
+  };
+  ...
+```
+
+Nice! After the note is saved we close the modal. Pretty slick.
+
 ### List the Tasting Notes
+
+We can add notes all day long, but we cannot see them. Let's shift back to the tasting notes page and do a little work. When we come into the page, we want to display the existing notes in a simple list.
+
+#### Test First
+
+#### Then Code
 
 ## Conclusion
 
