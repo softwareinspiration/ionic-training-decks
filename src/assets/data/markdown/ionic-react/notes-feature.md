@@ -506,6 +506,129 @@ Open up `src/tasing-notes/editor/TastingNoteEditor.tsx` and replace the existing
 
 #### Inputs
 
+Let's start filling out that form. First start by adding the following code to hook into React Form Hook:
+
+```TypeScript
+import React, { useState } from 'react';
+...
+import {useForm, Controller } from 'react-hook-form';
+...
+interface TastingNoteEditorProps {
+  ...
+}
+
+const defaultValues = {
+  brand: '',
+  name: '',
+  teaCategoryId: 0,
+  rating: 0,
+  notes: '',
+};
+
+const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
+  isOpen,
+  setIsOpen,
+  id
+}) => {
+  const { handleSubmit, control, formState } = useForm({
+    mode: 'onChange',
+    defaultValues,
+  });
+  const [categories, setCategories] = useState<Array<string>>([]);
+  return (
+    ...
+  );
+};
+export default TastingNoteEditor;
+```
+
+We already have one simple form, the `LoginPage`. Over there we used a list of inputs, we will need something like that so let's use it as a model for the first couple of input fields here. All of the following code will go inside the `form` element:
+
+```TypeScript
+<IonItem>
+  <IonLabel position="floating">Brand</IonLabel>
+  <Controller
+    render={({ onChange }) => <IonInput onIonChange={onChange} />}
+    control={control}
+    name="brand"
+    rules={{ required: true, minLength: 1 }}
+  />
+</IonItem>
+<IonItem>
+  <IonLabel position="floating">Name</IonLabel>
+  <Controller
+    render={({ onChange }) => <IonInput onIonChange={onChange} />}
+    control={control}
+    name="name"
+    rules={{ required: true, minLength: 1 }}
+  />
+</IonItem>
+```
+
+We need a way to select the category of tea that we have. Add the following `useState` statement under the declaration for `useForm`:
+
+```TypeScript
+  ...
+  const [categories, setCategories] = useState<Array<Tea>>([]);
+  ...
+```
+
+Then add the following template syntax underneath the "name" field created above:
+
+```TypeScript
+<IonItem>
+  <IonLabel>Category</IonLabel>
+  <Controller
+    render={({ onChange }) => (
+      <IonSelect onIonChange={onChange}>
+        {categories.map((tea: Tea) => (
+          <IonSelectOption key={tea.id} value={tea.id}>
+            {tea.name}
+          </IonSelectOption>
+        ))}
+      </IonSelect>
+    )}
+    control={control}
+    name="teaCategoryId"
+    rules={{ required: true }}
+  />
+</IonItem>
+```
+
+Underneath that, we'll add a field for rating:
+
+```TypeScript
+<IonItem>
+  <IonLabel>Rating</IonLabel>
+  <Controller
+    render={({ onChange }) => <Rating onRatingChange={onChange} />}
+    control={control}
+    name="rating"
+    rules={{ required: true }}
+  />
+</IonItem>
+```
+
+Isn't it awesome how our reusable `Rating` component fits seamlessly into the React Form Hook library?
+
+Finally, we'll add a text area for some free-form notes on the tea tasted:
+
+```TypeScript
+<IonItem>
+  <IonLabel position="floating">Notes</IonLabel>
+  <Controller
+    render={({ onChange }) => (
+      <IonTextarea onIonChange={onChange} rows={5} />
+    )}
+    control={control}
+    name="notes"
+    rules={{ required: true }}
+  />
+</IonItem>
+```
+
+### Hooking up the Form
+
 ## Conclusion
 
 Congratulations. You have used what we have learned to this point to add a whole new feature to your app. Along the way, you also exercised a few Framework components you had not used before. We are almost done with this app. One more page to go and we will be done.

@@ -10,6 +10,11 @@ In this lab, you will learn how to:
 
 Most applications have more than one page. Our application will eventually have several; let's start by adding a login page.
 
+## TODO
+
+- Have user install `npm i react-hook-form`
+- Have user install `npm i mutationobserver-shim`
+
 ## The Login Page
 
 ### Create Folder and Files
