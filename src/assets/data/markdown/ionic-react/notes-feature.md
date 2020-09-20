@@ -627,7 +627,27 @@ Finally, we'll add a text area for some free-form notes on the tea tasted:
 </IonItem>
 ```
 
-### Hooking up the Form
+### Wiring up the Form
+
+We will now turn our attention to wiring the form up so it can be submitted to the tasting notes data service.
+
+#### Initialization
+
+The only initialization we need at this point is to fetch the list of tea categories to bind to our `ion-select` component.
+
+##### Test First
+
+##### Then Code
+
+#### Perform the Add
+
+Adding a tasting note is relatively easy: create a tasting note object using the form properties, call `saveNote()` from the tasting note hook and dismiss the modal.
+
+##### Test First
+
+##### Then Code
+
+### List the Tasting Notes
 
 ## Conclusion
 
