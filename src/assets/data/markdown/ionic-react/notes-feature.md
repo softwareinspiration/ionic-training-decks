@@ -415,6 +415,31 @@ We are creating a shell component to house our editor in. There are a few notabl
 - This component will contain a close button; it is the parent component's responsibility to provide that functionality
 - We want the ability to update an existing note later on, so we'll add it as an optional prop
 
+Let's also start the test file. Open `TastingNoteEditor.test.tsx` and paste in the following code:
+
+```TypeScript
+import React from 'react';
+import { render } from '@testing-library/react';
+import { cleanup } from '@testing-library/react-hooks';
+import { ionFireEvent as fireEvent } from '@ionic/react-test-utils';
+import TastingNotesSingleton, { TastingNotesService } from '../TastingNotesService';
+import TastingNoteEditor from './TastingNoteEditor';
+
+
+describe('<TastingNoteEditor />', () => {
+  let mockOnDismiss: any;
+
+  beforeEach(() => {
+    mockOnDismiss = jest.fn();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+});
+```
+
 ### Hookup the Modal
 
 The first thing we need to do is get a modal overlayed hooked up for the "add a new note" case. This will allow us to test out the component for the modal as we develop it.
@@ -427,7 +452,7 @@ Open `src/tasting-notes/TastingNotes.test.tsx` and add the following describe bl
 
 ```TypeScript
   ...
-  describe('add new note', () => {
+  describe('add a new note', () => {
     it('displays the editor modal', async () => {
       const { container, getByText } = render(<TastingNotes />);
       const button = container.querySelector('ion-fab-button')!;
@@ -482,26 +507,45 @@ To make our test in `TastingNotes.test.tsx` pass, we need some text that says "A
 Open up `src/tasing-notes/editor/TastingNoteEditor.tsx` and fill out the template like so:
 
 ```JSX
-<IonHeader>
-  <IonToolbar>
-    <IonTitle>Add New Tasting Note</IonTitle>
-    <IonButtons slot="primary">
-      <IonButton id="cancel-button" onClick={() => onDismiss()}>
-        <IonIcon slot="icon-only" icon={close} />
-      </IonButton>
-    </IonButtons>
-  </IonToolbar>
-</IonHeader>
+<>
+  <IonHeader>
+    <IonToolbar>
+      <IonTitle>Add New Tasting Note</IonTitle>
+      <IonButtons slot="primary">
+        <IonButton id="cancel-button" onClick={() => onDismiss()}>
+          <IonIcon slot="icon-only" icon={close} />
+        </IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
 
-<IonContent>
-  <form></form>
-</IonContent>
+  <IonContent>
+    <form></form>
+  </IonContent>
 
-<IonFooter>
-  <IonToolbar>
-    <IonButton expand="full">Add</IonButton>
-  </IonToolbar>
-</IonFooter>
+  <IonFooter>
+    <IonToolbar>
+      <IonButton expand="full">Add</IonButton>
+    </IonToolbar>
+  </IonFooter>
+</>
+```
+
+Typically we'd test first, but in this instance I'll let it slide. Add a new describe block to `TastingNoteEditor.test.tsx`:
+
+```TypeScript
+describe('cancel button', () => {
+  it('calls the dismiss function', async () => {
+    const { container } = render(
+      <TastingNoteEditor onDismiss={mockOnDismiss} />,
+    );
+    const button = await waitForElement(
+      () => container.querySelector('#cancel-button')!,
+    );
+    fireEvent.click(button);
+    expect(mockOnDismiss).toHaveBeenCalledTimes(1);
+  });
+});
 ```
 
 #### Inputs
@@ -517,14 +561,6 @@ interface TastingNoteEditorProps {
   ...
 }
 
-const defaultValues = {
-  brand: '',
-  name: '',
-  teaCategoryId: 0,
-  rating: 0,
-  notes: '',
-};
-
 const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
   isOpen,
   setIsOpen,
@@ -532,9 +568,8 @@ const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
 }) => {
   const { handleSubmit, control, formState } = useForm<TastingNote>({
     mode: 'onChange',
-    defaultValues,
   });
-  const [categories, setCategories] = useState<Array<string>>([]);
+
   return (
     ...
   );
@@ -544,23 +579,29 @@ export default TastingNoteEditor;
 
 We already have one simple form, the `LoginPage`. Over there we used a list of inputs, we will need something like that so let's use it as a model for the first couple of input fields here. All of the following code will go inside the `form` element:
 
-```TypeScript
+```JSX
 <IonItem>
   <IonLabel position="floating">Brand</IonLabel>
   <Controller
-    render={({ onChange }) => <IonInput onIonChange={onChange} />}
+    render={({ onChange, value }) => (
+      <IonInput name="brand" onIonChange={onChange} value={value} />
+    )}
     control={control}
     name="brand"
-    rules={{ required: true, minLength: 1 }}
+    rules={{ required: true }}
+    defaultValue={note?.brand || ''}
   />
 </IonItem>
 <IonItem>
   <IonLabel position="floating">Name</IonLabel>
   <Controller
-    render={({ onChange }) => <IonInput onIonChange={onChange} />}
+    render={({ onChange, value }) => (
+      <IonInput onIonChange={onChange} value={value} />
+    )}
     control={control}
     name="name"
-    rules={{ required: true, minLength: 1 }}
+    rules={{ required: true }}
+    defaultValue={note?.name || ''}
   />
 </IonItem>
 ```
@@ -575,54 +616,63 @@ We need a way to select the category of tea that we have. Add the following `use
 
 Then add the following template syntax underneath the "name" field created above:
 
-```TypeScript
+```JSX
 <IonItem>
   <IonLabel>Category</IonLabel>
   <Controller
-    render={({ onChange }) => (
-      <IonSelect onIonChange={onChange}>
-        {categories.map((tea: Tea) => (
-          <IonSelectOption key={tea.id} value={tea.id}>
-            {tea.name}
-          </IonSelectOption>
-        ))}
-      </IonSelect>
+    render={({ onChange, value }) => (
+      <>
+        {categories.length && (
+          <IonSelect onIonChange={onChange} value={value}>
+            {categories.map((tea: Tea) => (
+              <IonSelectOption key={tea.id} value={tea.id}>
+                {tea.name}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        )}
+      </>
     )}
     control={control}
     name="teaCategoryId"
     rules={{ required: true }}
+    defaultValue={note?.teaCategoryId || 0}
   />
 </IonItem>
 ```
 
 Underneath that, we'll add a field for rating:
 
-```TypeScript
+```JSX
 <IonItem>
   <IonLabel>Rating</IonLabel>
   <Controller
-    render={({ onChange }) => <Rating onRatingChange={onChange} />}
+    render={({ onChange, value }) => (
+      <Rating onRatingChange={onChange} initialRating={value} />
+    )}
     control={control}
     name="rating"
     rules={{ required: true }}
+    defaultValue={note?.rating || 0}
   />
 </IonItem>
 ```
 
-Isn't it awesome how our reusable `Rating` component fits seamlessly into the React Form Hook library?
+Isn't it cool how our reusable `Rating` component fits seamlessly into the React Form Hook library?
 
 Finally, we'll add a text area for some free-form notes on the tea tasted:
 
-```TypeScript
+```JSX
 <IonItem>
   <IonLabel position="floating">Notes</IonLabel>
   <Controller
-    render={({ onChange }) => (
-      <IonTextarea onIonChange={onChange} rows={5} />
+    render={({ onChange, value }) => (
+      <IonTextarea onIonChange={onChange} rows={5} value={value} />
     )}
     control={control}
     name="notes"
     rules={{ required: true }}
+    defaultValue={note?.notes || 0}
   />
 </IonItem>
 ```
@@ -637,14 +687,9 @@ The only initialization we need at this point is to fetch the list of tea catego
 
 ##### Test First
 
-Add the following mocks to `src/tasting-notes/editor/TastingNoteEditor.test.tsx`:
+Add the following mock to `src/tasting-notes/editor/TastingNoteEditor.test.tsx`:
 
 ```TypeScript
-const MockAddTastingNoteEditor: React.FC = () => {
-  const [isOpen, setIsOpen] = useState<boolean>(true);
-  return <TastingNoteEditor isOpen={isOpen} setIsOpen={setIsOpen} />;
-};
-
 const mockTeaCategories = [
   {
     id: 7,
@@ -662,8 +707,6 @@ const mockTeaCategories = [
   },
 ];
 ```
-
-Here we are creating a mock component that will keep `TastingEditorNote` open for our test cases. We also have a small mock list of tea categories for our `ion-select` element to use for options. Now replace the existing `describe` block with the following:
 
 ```TypeScript
 describe('<TastingNoteEditor />', () => {
