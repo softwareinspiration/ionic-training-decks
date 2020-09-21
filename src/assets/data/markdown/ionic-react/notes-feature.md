@@ -555,7 +555,7 @@ Let's start filling out that form. First start by adding the following code to h
 ```TypeScript
 import React, { useState } from 'react';
 ...
-import {useForm, Controller } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 ...
 interface TastingNoteEditorProps {
   ...
@@ -708,12 +708,14 @@ const mockTeaCategories = [
 ];
 ```
 
+Now let's add a mock for the `getAll()` method of `TeaCategoriesSingleton` and add describe block and test for the component's initialization logic:
+
 ```TypeScript
 describe('<TastingNoteEditor />', () => {
   let teaCategoriesService: TeaCategories;
-  let tastingNotesService: TastingNotesService;
 
   beforeEach(() => {
+    ...
     teaCategoriesService = TeaCategoriesSingleton.getInstance();
     teaCategoriesService.getAll = jest.fn(() =>
       Promise.resolve(mockTeaCategories),
@@ -732,20 +734,24 @@ describe('<TastingNoteEditor />', () => {
     });
   });
 
-  afterEach(() => {
-    cleanup();
-    jest.restoreAllMocks();
-  });
+  ...
+
 });
 ```
 
-Don't forget to remove the existing snapshot test; we'll create new tests later on to create snapshots for when the editor is in add mode and when it's in update mode.
-
 ##### Then Code
 
-We've seen this code before. I'll leave it to you to implement.
+We've seen this code before. Add the following to `TastingNoteEditor.tsx`:
 
-**Challenge:** Implement logic so that the list of `categories` is set when the component is initialized.
+```TypeScript
+useEffect(() => {
+  const initTeaCategories = async () => {
+    const teaCategories = await getCategories();
+    setCategories(teaCategories || []);
+  };
+  initTeaCategories();
+}, []);
+```
 
 #### Perform the Add
 
