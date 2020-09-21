@@ -384,41 +384,46 @@ Create a new folder inside of `src/tasting-notes` named `editor`. Add the follow
 - `TastingNoteEditor.tsx`
 - `TastingNoteEditor.test.tsx`
 
-In `TastingNoteEditor.tsx` add the following code:
+Open `TastingNoteEditor.tsx` and add in the following code (add any imports along the way):
 
 ```TypeScript
 import React from 'react';
-import { IonModal } from '@ionic/react';
 
 interface TastingNoteEditorProps {
-  isOpen: boolean;
-  setIsOpen: (value: React.SetStateAction<boolean>) => void;
-  id?: number;
+  onDismiss: () => void;
+  note?: TastingNote;
 }
 
 const TastingNoteEditor: React.FC<TastingNoteEditorProps> = ({
-  isOpen,
-  setIsOpen
-  id,
+  onDismiss,
+  note = undefined,
 }) => {
   return (
-    <IonModal isOpen={isOpen}>
-      <p>This is my modal!</p>
-    </IonModal>
+    <>
+      <IonHeader></IonHeader>
+      <IonContent></IonContent>
+      <IonFooter></IonFooter>
+    </>
   );
 };
 export default TastingNoteEditor;
 ```
 
-Here we are creating a shell modal component to house our editor in. Since we want the `TastingNotes` component to control whether the modal is open or closed, we'll have the parent component pass in props so that they can tell `TastingNoteEditor` when it's appropriate to show or hide itself. We also added a prop named `id` which we will use later. It will help us when we need to edit an existing note.
+We are creating a shell component to house our editor in. There are a few notable items here:
+
+- Since we're building a component - opposed to a full page - we do not wrap inner elements in an `IonPage`
+- This component will contain a close button; it is the parent component's responsibility to provide that functionality
+- We want the ability to update an existing note later on, so we'll add it as an optional prop
 
 ### Hookup the Modal
 
-The first thing we need to do is add the `TastingNoteEditor` to our tasting notes page so we can test out the component for the modal as we develop it. We will launch the model for the "add a new note" scenario from a floating action button on the `TastingNotes` component.
+The first thing we need to do is get a modal overlayed hooked up for the "add a new note" case. This will allow us to test out the component for the modal as we develop it.
+
+We will launch the modal for the "add a new note" scenario from a floating action button on the `TastingNotes` component.
 
 #### Test First
 
-Add the following describe block to `TastingNotes.test.tsx`:
+Open `src/tasting-notes/TastingNotes.test.tsx` and add the following describe block:
 
 ```TypeScript
   ...
@@ -427,20 +432,15 @@ Add the following describe block to `TastingNotes.test.tsx`:
       const { container, getByText } = render(<TastingNotes />);
       const button = container.querySelector('ion-fab-button')!;
       fireEvent.click(button);
-      const modal = await waitForElement(() =>
-        getByText('Add New Tasting Note'),
-      );
-      expect(modal).toBeDefined();
+      await wait(() => expect(getByText('Add New Tasting Note')).toBeDefined());
     });
   });
   ...
 ```
 
-Don't forget to add any imports.
-
 #### Then Code
 
-From here, the markup is pretty easy. Modify `TastingNotes` to add the following code:
+Now let's add the modal to the tasting notes page. Open `TastingNotes.tsx` and add the following code:
 
 ```TypeScript
 ...
@@ -461,7 +461,9 @@ const TastingNotes: React.FC = () => {
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>
-        <TastingNoteEditor isOpen={showModal} setIsOpen={setShowModal} />
+         <IonModal isOpen={showModal}>
+          <TastingNoteEditor onDismiss={() => setShowModal(false)} />
+        </IonModal>
       </IonContent>
     </IonPage>
   );
@@ -475,18 +477,16 @@ Don't worry, the test you added will still be failing. We'll fix that next.
 
 #### Basic Layout
 
-To make our test in `TastingNotes.test.tsx` pass, we need some text that says "Add New Tasting Note". Fortuantely, that is _exactly_ what the header of our `TastingNoteEditor` component will be.
+To make our test in `TastingNotes.test.tsx` pass, we need some text that says "Add New Tasting Note". Luckily, that will be the header text for `TastingNoteEditor`. Let's lay down some basics of the form's UI - including the header.
 
-Let's lay our some more basics of the form's UI - we'll want a header section with a title, a footer section with a button, and the content that will be our form. So let's start there.
-
-Open up `src/tasing-notes/editor/TastingNoteEditor.tsx` and replace the existing `<p>` tag inside the `IonModal` component with the following:
+Open up `src/tasing-notes/editor/TastingNoteEditor.tsx` and fill out the template like so:
 
 ```JSX
 <IonHeader>
   <IonToolbar>
     <IonTitle>Add New Tasting Note</IonTitle>
     <IonButtons slot="primary">
-      <IonButton id="cancel-button" onClick={() => setIsOpen(false)}>
+      <IonButton id="cancel-button" onClick={() => onDismiss()}>
         <IonIcon slot="icon-only" icon={close} />
       </IonButton>
     </IonButtons>
@@ -740,13 +740,189 @@ Now let's setup the `submitNote()` function:
 
 Nice! After the note is saved we close the modal. Pretty slick.
 
-### List the Tasting Notes
+## List the Tasting Notes
 
 We can add notes all day long, but we cannot see them. Let's shift back to the tasting notes page and do a little work. When we come into the page, we want to display the existing notes in a simple list.
 
-#### Test First
+### Test First
 
-#### Then Code
+First we need to provide a mock for the `TastingNotesService` and configure it to return some basic test data. Open up `src/tasting-notes/TastingNotes.test.tsx` and update the file like so:
+
+```Typescript
+import React from 'react';
+...
+
+const mockTastingNotes: Array<TastingNote> = [
+  {
+    id: 73,
+    brand: 'Bently',
+    name: 'Brown Label',
+    notes: 'Essentially OK',
+    rating: 3,
+    teaCategoryId: 2,
+  },
+  {
+    id: 42,
+    brand: 'Lipton',
+    name: 'Yellow Label',
+    notes: 'Overly acidic, highly tannic flavor',
+    rating: 1,
+    teaCategoryId: 3,
+  },
+];
+
+describe('<TastingNotes />', () => {
+  let tastingNotesService: TastingNotesService;
+
+  beforeEach(() => {
+    tastingNotesService = TastingNotesSingleton.getInstance();
+    tastingNotesService.getAll = jest.fn(() =>
+      Promise.resolve(mockTastingNotes),
+    );
+  });
+
+  it('renders consistently', async () => {
+    const { asFragment } = render(<TastingNotes />);
+    await wait(() => expect(asFragment).toMatchSnapshot());
+  });
+
+  describe('add new note', () => {
+    ...
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+});
+```
+
+Then we can create a couple of simple tests to ensure our list is displayed properly:
+
+```TypeScript
+  ...
+  describe('initialization', () => {
+    it('gets all of the notes', async () => {
+      render(<TastingNotes />);
+      await wait(() => expect(tastingNotesService.getAll).toBeCalledTimes(1));
+    });
+
+    it('displays the notes', async () => {
+      const { container } = render(<TastingNotes />);
+      await wait(() => {
+        expect(container).toHaveTextContent(/Bently/);
+        expect(container).toHaveTextContent(/Lipton/);
+      });
+    });
+  });
+  ...
+```
+
+Failing tests means time to code!
+
+### Then Code
+
+You should know the drill by now, in order to fetch data during initialization we need a `useEffect` and use `useState` to hold the data for us to render. We'll also need to create a list to display the tasting notes:
+
+```TypeScript
+...
+const TastingNotes: React.FC = () => {
+  ...
+  const [tastingNotes, setTastingNotes] = useState<TastingNote[]>([]);
+  const { getAllNotes } = useTastingNotes();
+
+  useEffect(() => {
+    const initNotes = async () => {
+      const notes = await getAllNotes();
+      setTastingNotes(notes || []);
+    };
+    initNotes();
+  }, []);
+};
+
+return (
+  <IonPage>
+    <IonHeader>
+      ...
+    </IonHeader>
+    <IonContent>
+      <IonHeader>
+        ...
+      </IonHeader>
+
+      <IonList>
+        {tastingNotes.map((note, idx) => (
+          <IonItem key={idx}>
+            <IonLabel>
+              <div>{note.brand}</div>
+              <div>{note.name}</div>
+            </IonLabel>
+          </IonItem>
+        ))}
+      </IonList>
+
+      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+        ...
+      </IonFab>
+      <TastingNoteEditor isOpen={showModal} setIsOpen={setShowModal}>
+    </IonContent>
+  </IonPage>
+);
+export default TastingNotes;
+```
+
+## Refreshing Tasting Notes
+
+The notes we have added so far show up, but when we add a new note it does not. We can easily fix that.
+
+### Test First
+
+Add the following test to the "add new note" describe block of `TastingNotes.test.tsx`. We want to make sure we wait for the modal to be dismissed and that we refresh the note list.
+
+```TypeScript
+it('refreshes the notes list', async () => {
+  const { container } = render(<TastingNotes />);
+  const button = container.querySelector('ion-fab-button')!;
+  fireEvent.click(button);
+  const cancelButton = await waitForElement(
+    () => container.querySelector('#cancel-button')!,
+  );
+  fireEvent.click(cancelButton);
+  expect(tastingNotesService.getAll).toHaveBeenCalledTimes(2);
+});
+```
+
+### Then Code
+
+We need a way to update `tastingNotes` when the modal has been dismissed. There's already code in place to retrieve the list of tasting notes when the component is initialized, it would be advantageous if we could modify the `useEffect`, right?
+
+Let's shift our thinking towards hooks and how they work. We can run logic when properties are changed, and for all intents and purposes, we really just care about getting the tasting notes when `showModal` is set to `false`. This always happens when the component is initialized and whenever the modal is dismissed.
+
+We can modify the `useEffect` in `TastingNotes.tsx` to achieve this:
+
+```TypeScript
+useEffect(() => {
+  if (!showModal) {
+    const initNotes = async () => {
+      const notes = await getAllNotes();
+      setTastingNotes(notes || []);
+    };
+    initNotes();
+  }
+}, [showModal]);
+```
+
+The modification above states that our `useEffect` listens to changes on `showModal`. If `showModal` is `false` then we run an asyncrhonous function that updates `tastingNotes`. This is pretty powerful!
+
+#### Side-Note: Better Practices
+
+Now we refresh the list of tasting notes whenever the user dismisses the modal, whether they have added a new note or not. In a real-life scenario, you would want to guard against this.
+
+Additionally, if this list of notes was tied to the current application user it would be a waste of network resources to refresh the list every time a new note was added. It would be practical to store the intitial list of notes application state and add new notes to that in-memory list.
+
+## Edit a Note
+
+It would be nice to be able to go back and either view or modify tasting notes that had been previously created.
 
 ## Conclusion
 
